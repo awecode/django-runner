@@ -5,7 +5,7 @@
 import sys
 from PyQt5.QtCore import QCoreApplication, QSettings
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, qApp
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction
 
 
 class Tray():
@@ -23,22 +23,24 @@ class Cockpit(QMainWindow):
     def __init__(self, base):
         super(Cockpit, self).__init__()
         self.base = base
-        self.createStatusBar()
-        self.createMenuBar()
+        self.status_bar = self.create_status_bar()
+        self.menu_bar = self.create_menu_bar()
         self.setWindowTitle(self.base.settings.value('title'))
 
-    def createStatusBar(self):
-        self.statusbar = self.statusBar()
-        self.statusbar.showMessage(self.base.status_text)
+    def create_status_bar(self):
+        bar = self.statusBar()
+        bar.showMessage(self.base.status_text)
+        return bar
 
-    def createMenuBar(self):
-        exitAction = QAction(QIcon('exit.png'), '&Exit', self)
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit application')
-        exitAction.triggered.connect(self.quit())
-        self.menubar = self.menuBar()
-        fileMenu = self.menubar.addMenu('&File')
-        fileMenu.addAction(exitAction)
+    def create_menu_bar(self):
+        exit_action = QAction(QIcon('exit.png'), '&Exit', self)
+        exit_action.setShortcut('Ctrl+Q')
+        exit_action.setStatusTip('Exit application')
+        exit_action.triggered.connect(self.quit())
+        bar = self.menuBar()
+        file_menu = bar.addMenu('&File')
+        file_menu.addAction(exit_action)
+        return bar
 
     def show_window(self):
         self.center()
