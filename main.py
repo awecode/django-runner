@@ -36,14 +36,14 @@ class Cockpit(QMainWindow):
 
     def init_UI(self):
         self.status_bar = self.create_status_bar()
-        self.toolbar = self.create_toolbar()
+        # self.toolbar = self.create_toolbar()
         self.menu_bar = self.create_menu_bar()
         self.setWindowTitle(self.base.settings.value('title'))
         self.resize(300, 300)
-        self.show()
+        self.show_window()
 
     def create_toolbar(self):
-        exit_action = QAction(QIcon('exit24.png'), 'Exit', self)
+        exit_action = QAction(QIcon.fromTheme('exit'), 'Exit', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.triggered.connect(self.quit())
         bar = self.addToolBar('Exit')
@@ -56,12 +56,12 @@ class Cockpit(QMainWindow):
         return bar
 
     def create_menu_bar(self):
-        exit_action = QAction(QIcon('exit.png'), 'E&xit', self)
+        exit_action = QAction(QIcon.fromTheme('exit'), 'E&xit', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.setStatusTip('Exit application')
         exit_action.triggered.connect(self.quit())
 
-        restore_action = QAction(QIcon('exit.png'), '&Restore', self)
+        restore_action = QAction(QIcon.fromTheme('system-software-update'), '&Restore', self)
         restore_action.setShortcut('Ctrl+R')
         restore_action.setStatusTip('Restore Database')
         restore_action.triggered.connect(self.show_file_dialog)
