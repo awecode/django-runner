@@ -6,11 +6,14 @@ import sys
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
-    QVBoxLayout, QLCDNumber, QSlider, QFileDialog
+    QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon
 
 
-class Tray():
-    pass
+class Tray(object):
+    def __init__(self, base):
+        print(app)
+        tray_icon = QSystemTrayIcon(QIcon("Bomb.xpm"), app)
+        tray_icon.show()
 
 
 class Communicate(QObject):
@@ -22,6 +25,7 @@ class DRBase(object):
         self.settings = QSettings("settings.ini", QSettings.IniFormat)
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
+        self.tray = Tray(self)
 
 
 class Cockpit(QMainWindow):
