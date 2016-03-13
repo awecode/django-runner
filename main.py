@@ -3,7 +3,7 @@
 
 
 import sys
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, QSettings
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, qApp
 
@@ -12,12 +12,24 @@ class Tray():
     pass
 
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super(MainWindow, self).__init__()
-        self.statusbar = self.statusBar()
+class DRBase(object):
+    def __init__(self, *args, **kwargs):
+        self.settings = QSettings("settings.ini", QSettings.IniFormat)
+        self.status_text = 'Loading ...'
+        self.cockpit = Cockpit(self)
+
+
+class Cockpit(QMainWindow):
+    def __init__(self, base):
+        super(Cockpit, self).__init__()
+        self.base = base
+        self.createStatusBar()
         self.createMenuBar()
-        self.setWindowTitle('Icon')
+        self.setWindowTitle(self.base.settings.value('title'))
+
+    def createStatusBar(self):
+        self.statusbar = self.statusBar()
+        self.statusbar.showMessage(self.base.status_text)
 
     def createMenuBar(self):
         exitAction = QAction(QIcon('exit.png'), '&Exit', self)
@@ -28,7 +40,7 @@ class MainWindow(QMainWindow):
         fileMenu = self.menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
 
-    def showWindow(self):
+    def show_window(self):
         self.center()
         self.show()
 
@@ -42,6 +54,7 @@ class MainWindow(QMainWindow):
         self.move(qr.topLeft())
 
     def closeEvent(self, event):
+        # noinspection PyCallByClass
         reply = QMessageBox.question(self, 'Message', "Are you sure to quit?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             event.accept()
@@ -51,6 +64,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.showWindow()
+    base = DRBase()
+    base.cockpit.show_window()
     sys.exit(app.exec_())
