@@ -3,8 +3,9 @@
 
 
 import sys
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl
 from PyQt5.QtGui import QIcon
+from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
     QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon, QMenu
 
@@ -20,7 +21,7 @@ class Tray(QSystemTrayIcon):
     def create_menu(self):
         menu = QMenu(self.cockpit)
         title = menu.addAction(QIcon('icons/awecode/16.png'), self.base.settings.value('title'))
-        title.setEnabled(False)
+        title.triggered.connect(self.base.web_view.start)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
         view_shell.triggered.connect(self.base.quit)
@@ -40,6 +41,16 @@ class Tray(QSystemTrayIcon):
         self.show()
 
 
+class WebView(QWebView):
+    def __init__(self, base):
+        super(WebView, self).__init__()
+        self.base = base
+
+    def start(self):
+        self.load(QUrl('http://127.0.0.1:8000'))
+        self.show()
+
+
 class Communicate(QObject):
     close_app = pyqtSignal()
 
@@ -50,6 +61,7 @@ class DRBase(object):
         self.settings = QSettings("settings.ini", QSettings.IniFormat)
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
+        self.web_view = WebView(self)
         self.tray = Tray(self)
 
     def quit(self):
@@ -136,14 +148,6 @@ class Cockpit(QMainWindow):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
             self.close()
-
-            # def closeEvent(self, event):
-            #     # noinspection PyCallByClass
-            #     reply = QMessageBox.question(self, 'Message', "Are you sure to quit?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            #     if reply == QMessageBox.Yes:
-            #         event.accept()
-            #     else:
-            #         event.ignore()
 
 
 if __name__ == '__main__':
