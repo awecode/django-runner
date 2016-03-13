@@ -49,6 +49,7 @@ class Cockpit(QMainWindow):
         # self.toolbar = self.create_toolbar()
         self.menu_bar = self.create_menu_bar()
         self.setWindowTitle(self.base.settings.value('title'))
+        self.setWindowIcon(self.base.app_icon)
         self.resize(300, 300)
         self.show_window()
 
