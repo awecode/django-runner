@@ -24,8 +24,17 @@ class Cockpit(QMainWindow):
         super(Cockpit, self).__init__()
         self.base = base
         self.status_bar = self.create_status_bar()
+        self.toolbar = self.create_toolbar()
         self.menu_bar = self.create_menu_bar()
         self.setWindowTitle(self.base.settings.value('title'))
+
+    def create_toolbar(self):
+        exit_action = QAction(QIcon('exit24.png'), 'Exit', self)
+        exit_action.setShortcut('Ctrl+Q')
+        exit_action.triggered.connect(self.quit())
+        bar = self.addToolBar('Exit')
+        bar.addAction(exit_action)
+        return bar
 
     def create_status_bar(self):
         bar = self.statusBar()
