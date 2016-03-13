@@ -3,7 +3,7 @@
 
 
 import sys
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
     QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon
@@ -11,8 +11,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDe
 
 class Tray(object):
     def __init__(self, base):
-        print(app)
-        tray_icon = QSystemTrayIcon(QIcon("Bomb.xpm"), app)
+        tray_icon = QSystemTrayIcon(base.app_icon, app)
         tray_icon.show()
 
 
@@ -22,10 +21,21 @@ class Communicate(QObject):
 
 class DRBase(object):
     def __init__(self, *args, **kwargs):
+        self.app_icon = self.set_icon()
         self.settings = QSettings("settings.ini", QSettings.IniFormat)
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
         self.tray = Tray(self)
+
+    def set_icon(self):
+        app_icon = QIcon()
+        app_icon.addFile('icons/awecode/16.png', QSize(16, 16))
+        app_icon.addFile('icons/awecode/24.png', QSize(24, 24))
+        app_icon.addFile('icons/awecode/32.png', QSize(32, 32))
+        app_icon.addFile('icons/awecode/48.png', QSize(48, 48))
+        app_icon.addFile('icons/awecode/256.png', QSize(256, 256))
+        app.setWindowIcon(QIcon('icons/awecode/16x16.png'))
+        return app_icon
 
 
 class Cockpit(QMainWindow):
@@ -106,6 +116,7 @@ class Cockpit(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
     base.cockpit.show_window()
     sys.exit(app.exec_())
