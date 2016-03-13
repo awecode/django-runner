@@ -13,12 +13,29 @@ class Tray(QSystemTrayIcon):
     def __init__(self, base):
         super(Tray, self).__init__(base.app_icon, app)
         self.base = base
+        self.cockpit = base.cockpit
         self.menu = self.create_menu()
+        self.setToolTip(base.settings.value('title'))
 
     def create_menu(self):
-        menu = QMenu(self.base.cockpit)
-        exit_action = menu.addAction("E&xit")
-        exit_action.triggered.connect(self.base.cockpit.quit)
+        menu = QMenu(self.cockpit)
+        title = menu.addAction(QIcon('icons/awecode/16.png'), self.base.settings.value('title'))
+        title.setEnabled(False)
+        menu.addSeparator()
+        view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
+        view_shell.triggered.connect(self.base.quit)
+        settings = menu.addAction(QIcon.fromTheme('emblem-system'), 'Set&tings')
+        settings.triggered.connect(self.base.quit)
+        about = menu.addAction(QIcon.fromTheme('help-about'), '&About')
+        about.triggered.connect(self.base.quit)
+        backup_restore = menu.addAction(QIcon.fromTheme('media-seek-backward'), '&Backup/Restore')
+        backup_restore.triggered.connect(self.base.quit)
+        check_update = menu.addAction(QIcon.fromTheme('system-software-update'), 'Check for &Updates')
+        check_update.triggered.connect(self.base.quit)
+        menu.addSeparator()
+        exit_action = menu.addAction(QIcon.fromTheme('exit'), 'E&xit')
+        exit_action.triggered.connect(self.cockpit.quit)
+
         self.setContextMenu(menu)
         self.show()
 
