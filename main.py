@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
+from concurrent.futures import thread
+import os
+import subprocess
 
 import sys
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect
+import threading
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
@@ -58,14 +61,45 @@ class Tab(QWidget):
         self.layout.addWidget(content)
 
     def add_line(self, content):
-        label = QLabel(content)
+        label = QLabel(str(content))
         self.add(label)
+
+
+class NewThread(QThread):
+    finished = pyqtSignal(str)
+
+    def __init__(self):
+        QThread.__init__(self)
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        from subprocess import Popen, PIPE
+
+        p = Popen(['ping', 'google.com'],
+                  stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+        while True:
+            output = p.stdout.readline()
+            if output:
+                print(output)
+                self.finished.emit(str(output))
+            else:
+                break
 
 
 class Service(Tab):
     def add_content(self, *args, **kwargs):
-        self.add_line('aaa')
-        self.add_line('bbb')
+        self.thread = NewThread()
+        self.thread.finished.connect(self.test)
+        self.thread.start()
+        self.add_line('a')
+
+    @pyqtSlot(int)
+    def test(self, st):
+        # self.add_line('a')
+        QMessageBox.information(self, "Done!", st)
+        pass
 
 
 class Settings(Tab):
