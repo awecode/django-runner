@@ -7,11 +7,11 @@ import subprocess
 import sys
 import threading
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
     QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QTabBar, QFormLayout, QLineEdit, \
-    QRadioButton, QLabel
+    QRadioButton, QLabel, QTextEdit
 
 
 class Tray(QSystemTrayIcon):
@@ -66,7 +66,7 @@ class Tab(QWidget):
 
 
 class NewThread(QThread):
-    finished = pyqtSignal(str)
+    line_output = pyqtSignal(str)
 
     def __init__(self):
         QThread.__init__(self)
@@ -82,23 +82,38 @@ class NewThread(QThread):
         while True:
             output = p.stdout.readline()
             if output:
-                print(output)
-                self.finished.emit(str(output))
+                self.line_output.emit(str(output))
             else:
                 break
 
 
+class Log(QTextEdit):
+    def __init__(self):
+        super(Log, self).__init__()
+        self.setReadOnly(True)
+        self.setLineWrapMode(QTextEdit.NoWrap)
+        font = self.font()
+        font.setFamily("Courier")
+        font.setPointSize(10)
+
+    def add_line(self, st):
+        self.insertPlainText(str(st) + '\n')
+        self.moveCursor(QTextCursor.End)
+        sb = self.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+
 class Service(Tab):
     def add_content(self, *args, **kwargs):
+        self.console = Log()
+        self.layout.addWidget(self.console)
         self.thread = NewThread()
-        self.thread.finished.connect(self.test)
+        self.thread.line_output.connect(self.new_line)
         self.thread.start()
-        self.add_line('a')
 
     @pyqtSlot(int)
-    def test(self, st):
-        # self.add_line('a')
-        QMessageBox.information(self, "Done!", st)
+    def new_line(self, st):
+        self.console.add_line(st)
         pass
 
 
@@ -200,7 +215,8 @@ class Cockpit(QMainWindow):
     def show_window(self):
         self.setWindowTitle(self.base.settings.value('title'))
         self.setWindowIcon(self.base.app_icon)
-        self.resize(300, 300)
+        # self.resize(1000, 15000)
+        self.showMaximized()
         self.center()
         self.show()
 
