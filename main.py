@@ -54,11 +54,18 @@ class Tab(QWidget):
     def add_content(self):
         pass
 
+    def add(self, content):
+        self.layout.addWidget(content)
+
+    def add_line(self, content):
+        label = QLabel(content)
+        self.add(label)
+
 
 class Service(Tab):
     def add_content(self, *args, **kwargs):
-        pushButton1 = QPushButton("Start")
-        self.layout.addWidget(pushButton1)
+        self.add_line('aaa')
+        self.add_line('bbb')
 
 
 class Settings(Tab):
