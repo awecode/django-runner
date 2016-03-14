@@ -42,17 +42,27 @@ class Tray(QSystemTrayIcon):
         self.show()
 
 
-class Service(QWidget):
+class Tab(QWidget):
     def __init__(self, *args, **kwargs):
         self.tab_widget = kwargs.pop('tab_widget')
-        super(Service, self).__init__(*args, **kwargs)
-        self.tab_widget.addTab(self, "Service")
+        super(Tab, self).__init__(*args, **kwargs)
+        self.tab_widget.addTab(self, self.__class__.__name__)
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.add_content()
 
-class Settings(QWidget):
-    def __init__(self, *args, **kwargs):
-        self.tab_widget = kwargs.pop('tab_widget')
-        super(Settings, self).__init__(*args, **kwargs)
-        self.tab_widget.addTab(self, "Settings")
+    def add_content(self):
+        pass
+
+
+class Service(Tab):
+    def add_content(self, *args, **kwargs):
+        pushButton1 = QPushButton("Start")
+        self.layout.addWidget(pushButton1)
+
+
+class Settings(Tab):
+    pass
 
 
 class WebView(QWebView):
