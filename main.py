@@ -3,11 +3,12 @@
 
 
 import sys
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
-    QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon, QMenu
+    QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QTabBar, QFormLayout, QLineEdit, \
+    QRadioButton, QLabel
 
 
 class Tray(QSystemTrayIcon):
@@ -39,6 +40,19 @@ class Tray(QSystemTrayIcon):
 
         self.setContextMenu(menu)
         self.show()
+
+
+class Service(QWidget):
+    def __init__(self, *args, **kwargs):
+        self.tab_widget = kwargs.pop('tab_widget')
+        super(Service, self).__init__(*args, **kwargs)
+        self.tab_widget.addTab(self, "Service")
+
+class Settings(QWidget):
+    def __init__(self, *args, **kwargs):
+        self.tab_widget = kwargs.pop('tab_widget')
+        super(Settings, self).__init__(*args, **kwargs)
+        self.tab_widget.addTab(self, "Settings")
 
 
 class WebView(QWebView):
@@ -85,10 +99,22 @@ class Cockpit(QMainWindow):
         self.init_UI()
 
     def init_UI(self):
+        self.widget = self.create_widget()
         self.status_bar = self.create_status_bar()
-        # self.toolbar = self.create_toolbar()
-        # self.menu_bar = self.create_menu_bar()
+        self.create_tabs()
         self.show_window()
+
+    def create_widget(self):
+        widget = QWidget(self)
+        self.setCentralWidget(widget)
+        return widget
+
+    def create_tabs(self):
+        tab_widget = QTabWidget(self.widget)
+        # tab_widget.setGeometry(QRect(10, 10, 500, 500))
+        self.service_tab = Service(tab_widget=tab_widget)
+        self.setting_tab = Settings(tab_widget=tab_widget)
+        return tab_widget
 
     def create_toolbar(self):
         exit_action = QAction(QIcon.fromTheme('exit'), 'Exit', self)
@@ -154,5 +180,8 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
+
+    # tab = Tab(base.cockpit)
     base.cockpit.show_window()
+    # tab.show()
     sys.exit(app.exec_())
