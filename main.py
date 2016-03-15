@@ -64,6 +64,7 @@ class Tab(QWidget):
 
 class ServiceThread(QThread):
     line_output = pyqtSignal(str)
+    line_error = pyqtSignal(str)
 
     def __init__(self):
         QThread.__init__(self)
@@ -74,12 +75,19 @@ class ServiceThread(QThread):
     def run(self):
         from subprocess import Popen, PIPE
 
-        p = Popen(['ping', 'google.com'],
-                  stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+        proc = Popen(['ping', 'google.com'],
+                     stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+
         while True:
-            output = p.stdout.readline()
+            output = proc.stdout.readline()
             if output:
                 self.line_output.emit(str(output))
+            else:
+                break
+        while True:
+            error = proc.stderr.readline()
+            if error:
+                self.line_error.emit(str(error))
             else:
                 break
 
@@ -93,13 +101,19 @@ class Log(QTextEdit):
         font = self.font()
         font.setFamily("Courier")
         font.setPointSize(10)
+        self.html = ''
 
     def add_line(self, st):
         self.moveCursor(QTextCursor.End)
-        self.insertPlainText(str(st) + '\n')
+        # self.insertPlainText(str(st) + '\n')
+        self.html += '<span>' + st + '</span>' + '<br/>'
+        self.setHtml(self.html)
         sb = self.verticalScrollBar()
         sb.setValue(sb.maximum())
         self.updateGeometry()
+
+    def add_error(self, st):
+        self.add_line('<span style="color:red">' + st + '</span>')
 
 
 class Service(Tab):
@@ -108,12 +122,17 @@ class Service(Tab):
         self.layout.addWidget(self.console)
         self.thread = ServiceThread()
         self.thread.line_output.connect(self.new_line)
+        self.thread.line_error.connect(self.new_error)
         self.thread.start()
 
     @pyqtSlot(int)
     def new_line(self, st):
         self.console.add_line(st)
-        pass
+
+    @pyqtSlot(int)
+    def new_error(self, st):
+        print(st)
+        self.console.add_error(st)
 
 
 class Settings(Tab):
