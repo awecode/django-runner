@@ -3,7 +3,8 @@
 import os
 
 import sys
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot, QProcess, \
+    QProcessEnvironment
 from PyQt5.QtGui import QIcon, QTextCursor, QColor
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
@@ -75,25 +76,28 @@ class ServiceThread(QThread):
     def run(self):
         from subprocess import Popen, PIPE
 
+        print('a')
         env = os.environ.copy()
         env["PATH"] = "/home/xtranophilist/pro/goms/env/bin:" + env["PATH"]
         try:
-            proc = Popen(['python', 'manage.py', 'runserver'], cwd='/home/xtranophilist/pro/goms/app',
-                         stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False, env=env)
+            self.proc = Popen(['python', 'manage.py', 'runserver'], cwd='/home/xtranophilist/pro/goms/app',
+                              stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False, env=env)
             while True:
-                output = proc.stdout.readline().decode('utf-8')
+                output = self.proc.stdout.readline().decode('utf-8')
                 if output:
                     self.line_output.emit(output)
                 else:
                     break
             while True:
-                error = proc.stderr.readline().decode('utf-8')
+                error = self.proc.stderr.readline().decode('utf-8')
                 if error:
                     self.line_error.emit(error)
                 else:
                     break
         except FileNotFoundError as e:
             self.line_error.emit(str(e))
+            self.proc = None
+            self.terminate()
 
 
 class Log(QTextEdit):
@@ -109,8 +113,7 @@ class Log(QTextEdit):
 
     def add_line(self, st):
         self.moveCursor(QTextCursor.End)
-        # self.insertPlainText(str(st) + '\n')
-        self.html += '<span>' + st + '</span>' + '<br/>'
+        self.html += '<pre>' + st + '</pre>'
         self.setHtml(self.html)
         sb = self.verticalScrollBar()
         sb.setValue(sb.maximum())
@@ -121,13 +124,35 @@ class Log(QTextEdit):
 
 
 class Service(Tab):
+    def call_program(self):
+        self.process.setWorkingDirectory('/home/xtranophilist/pro/goms/app')
+        self.process.start('/home/xtranophilist/pro/goms/env/bin/python', ['manage.py', 'runserver'])
+
     def add_content(self, *args, **kwargs):
         self.console = Log()
         self.layout.addWidget(self.console)
-        self.thread = ServiceThread()
-        self.thread.line_output.connect(self.new_line)
-        self.thread.line_error.connect(self.new_error)
-        self.thread.start()
+        self.process = QProcess(self)
+        self.process.readyRead.connect(self.on_ready)
+        self.process.error.connect(self.on_error)
+        self.process.finished.connect(self.on_finish)
+        self.call_program()
+
+    def on_ready(self):
+        txt = str(self.process.readAll(), encoding='utf-8')
+        self.console.add_line(txt)
+
+    def on_finish(self):
+        error = str(self.process.readAllStandardError(), encoding='utf-8')
+        if error == '':
+            self.console.add_line('Process finished!')
+        else:
+            self.console.add_error(error)
+
+    def on_error(self):
+        error = 'Error occurred while trying to run python manage.py runserver'
+        if not self.process.error() == 0:
+            error += str(self.process.error())
+        self.console.add_error(error)
 
     @pyqtSlot(int)
     def new_line(self, st):
@@ -260,6 +285,15 @@ class Cockpit(QMainWindow):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
             self.close()
+
+
+def debug_trace():
+    from PyQt5.QtCore import pyqtRemoveInputHook
+
+    from pdb import set_trace
+
+    pyqtRemoveInputHook()
+    set_trace()
 
 
 if __name__ == '__main__':
