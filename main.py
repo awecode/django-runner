@@ -75,21 +75,22 @@ class ServiceThread(QThread):
     def run(self):
         from subprocess import Popen, PIPE
 
-        proc = Popen(['ping', 'google.com'],
-                     stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
-
-        while True:
-            output = proc.stdout.readline()
-            if output:
-                self.line_output.emit(str(output))
-            else:
-                break
-        while True:
-            error = proc.stderr.readline()
-            if error:
-                self.line_error.emit(str(error))
-            else:
-                break
+        try:
+            proc = Popen(['ls', 'google.com'], stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+            while True:
+                output = proc.stdout.readline().decode('utf-8')
+                if output:
+                    self.line_output.emit(output)
+                else:
+                    break
+            while True:
+                error = proc.stderr.readline().decode('utf-8')
+                if error:
+                    self.line_error.emit(error)
+                else:
+                    break
+        except FileNotFoundError as e:
+            self.line_error.emit(str(e))
 
 
 class Log(QTextEdit):
@@ -131,7 +132,6 @@ class Service(Tab):
 
     @pyqtSlot(int)
     def new_error(self, st):
-        print(st)
         self.console.add_error(st)
 
 
