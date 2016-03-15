@@ -267,4 +267,6 @@ if __name__ == '__main__':
     app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
     base.cockpit.show_window()
-    sys.exit(app.exec_())
+    ret = app.exec_()
+    app.deleteLater()
+    sys.exit(ret)
