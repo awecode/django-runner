@@ -1,17 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from concurrent.futures import thread
-import os
-import subprocess
+
 
 import sys
-import threading
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
     QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QTabBar, QFormLayout, QLineEdit, \
-    QRadioButton, QLabel, QTextEdit
+    QRadioButton, QLabel, QTextEdit, QSizePolicy
 
 
 class Tray(QSystemTrayIcon):
@@ -90,17 +87,24 @@ class NewThread(QThread):
 class Log(QTextEdit):
     def __init__(self):
         super(Log, self).__init__()
-        self.setReadOnly(True)
-        self.setLineWrapMode(QTextEdit.NoWrap)
-        font = self.font()
-        font.setFamily("Courier")
-        font.setPointSize(10)
+        # self.setReadOnly(True)
+        # self.setLineWrapMode(QTextEdit.NoWrap)
+        # font = self.font()
+        # font.setFamily("Courier")
+        # font.setPointSize(10)
+        self.setAlignment(Qt.AlignTop)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        # self.setFixedWidth(1800)
 
     def add_line(self, st):
+        print(st)
+        #  For QTextEdit
         self.insertPlainText(str(st) + '\n')
         self.moveCursor(QTextCursor.End)
         sb = self.verticalScrollBar()
         sb.setValue(sb.maximum())
+        self.updateGeometry()
 
 
 class Service(Tab):
@@ -129,10 +133,6 @@ class WebView(QWebView):
     def start(self):
         self.load(QUrl('http://127.0.0.1:8000'))
         self.show()
-
-
-class Communicate(QObject):
-    close_app = pyqtSignal()
 
 
 class DRBase(object):
@@ -173,13 +173,15 @@ class Cockpit(QMainWindow):
     def create_widget(self):
         widget = QWidget(self)
         self.setCentralWidget(widget)
+        layout = QVBoxLayout()
+        widget.setLayout(layout)
         return widget
 
     def create_tabs(self):
-        tab_widget = QTabWidget(self.widget)
-        # tab_widget.setGeometry(QRect(10, 10, 500, 500))
+        tab_widget = QTabWidget()
         self.service_tab = Service(tab_widget=tab_widget)
         self.setting_tab = Settings(tab_widget=tab_widget)
+        self.widget.layout().addWidget(tab_widget)
         return tab_widget
 
     def create_toolbar(self):
@@ -215,8 +217,8 @@ class Cockpit(QMainWindow):
     def show_window(self):
         self.setWindowTitle(self.base.settings.value('title'))
         self.setWindowIcon(self.base.app_icon)
-        # self.resize(1000, 15000)
-        self.showMaximized()
+        self.resize(1000, 15000)
+        # self.showMaximized()
         self.center()
         self.show()
 
@@ -247,8 +249,5 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
-
-    # tab = Tab(base.cockpit)
     base.cockpit.show_window()
-    # tab.show()
     sys.exit(app.exec_())
