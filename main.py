@@ -4,7 +4,7 @@
 
 import sys
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot
-from PyQt5.QtGui import QIcon, QTextCursor
+from PyQt5.QtGui import QIcon, QTextCursor, QColor
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
     QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QTabBar, QFormLayout, QLineEdit, \
@@ -62,7 +62,7 @@ class Tab(QWidget):
         self.add(label)
 
 
-class NewThread(QThread):
+class ServiceThread(QThread):
     line_output = pyqtSignal(str)
 
     def __init__(self):
@@ -87,21 +87,16 @@ class NewThread(QThread):
 class Log(QTextEdit):
     def __init__(self):
         super(Log, self).__init__()
-        # self.setReadOnly(True)
-        # self.setLineWrapMode(QTextEdit.NoWrap)
-        # font = self.font()
-        # font.setFamily("Courier")
-        # font.setPointSize(10)
-        self.setAlignment(Qt.AlignTop)
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        # self.setFixedWidth(1800)
+        self.setReadOnly(True)
+        self.setLineWrapMode(QTextEdit.NoWrap)
+        self.setStyleSheet("color: white; background: black")
+        font = self.font()
+        font.setFamily("Courier")
+        font.setPointSize(10)
 
     def add_line(self, st):
-        print(st)
-        #  For QTextEdit
-        self.insertPlainText(str(st) + '\n')
         self.moveCursor(QTextCursor.End)
+        self.insertPlainText(str(st) + '\n')
         sb = self.verticalScrollBar()
         sb.setValue(sb.maximum())
         self.updateGeometry()
@@ -111,7 +106,7 @@ class Service(Tab):
     def add_content(self, *args, **kwargs):
         self.console = Log()
         self.layout.addWidget(self.console)
-        self.thread = NewThread()
+        self.thread = ServiceThread()
         self.thread.line_output.connect(self.new_line)
         self.thread.start()
 
