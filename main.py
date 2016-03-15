@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
+import os
 
 import sys
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot
@@ -75,8 +75,11 @@ class ServiceThread(QThread):
     def run(self):
         from subprocess import Popen, PIPE
 
+        env = os.environ.copy()
+        env["PATH"] = "/home/xtranophilist/pro/goms/env/bin:" + env["PATH"]
         try:
-            proc = Popen(['ls', 'google.com'], stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+            proc = Popen(['python', 'manage.py', 'runserver'], cwd='/home/xtranophilist/pro/goms/app',
+                         stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False, env=env)
             while True:
                 output = proc.stdout.readline().decode('utf-8')
                 if output:
