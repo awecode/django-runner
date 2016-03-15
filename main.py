@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
-
+import signal
 import sys
+
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot, QProcess, \
     QProcessEnvironment
 from PyQt5.QtGui import QIcon, QTextCursor, QColor
@@ -301,6 +302,7 @@ if __name__ == '__main__':
     app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
     base.cockpit.show_window()
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     ret = app.exec_()
     app.deleteLater()
     sys.exit(ret)
