@@ -25,7 +25,7 @@ class Tray(QSystemTrayIcon):
         title.triggered.connect(self.base.web_view.start)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
-        view_shell.triggered.connect(self.base.quit)
+        view_shell.triggered.connect(lambda: self.show_tab(1))
         settings = menu.addAction(QIcon.fromTheme('emblem-system'), 'Set&tings')
         settings.triggered.connect(self.base.quit)
         about = menu.addAction(QIcon.fromTheme('help-about'), '&About')
@@ -40,6 +40,11 @@ class Tray(QSystemTrayIcon):
 
         self.setContextMenu(menu)
         self.show()
+
+    def show_tab(self, tab_index):
+        self.base.cockpit.tabs.setCurrentIndex(tab_index)
+        self.base.cockpit.show()
+        self.base.cockpit.activateWindow()
 
 
 class Tab(QWidget):
@@ -205,7 +210,7 @@ class Cockpit(QMainWindow):
     def init_UI(self):
         self.widget = self.create_widget()
         self.status_bar = self.create_status_bar()
-        self.create_tabs()
+        self.tabs = self.create_tabs()
         self.show_window()
 
     def create_widget(self):
