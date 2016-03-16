@@ -5,7 +5,7 @@ import signal
 import sys
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
-from PyQt5.QtGui import QIcon, QTextCursor
+from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton
@@ -277,6 +277,20 @@ class SettingsTab(Tab):
     pass
 
 
+class AboutTab(Tab):
+    def add_content(self):
+        # self.inner_layout = QHBoxLayout()
+        # self.layout.addLayout(self.inner_layout)
+        self.layout.setAlignment(Qt.AlignHCenter)
+        pic = QLabel(self)
+        pic.setGeometry(10, 10, 400, 100)
+        pic.setPixmap(QPixmap(os.path.join(os.getcwd(), 'icons', 'awecode', '256.png')))
+        self.layout.addWidget(pic)
+        about_text = 'Product of <strong>Awecode</strong>'
+        text = QLabel(about_text, self)
+        self.layout.addWidget(text)
+
+
 class WebView(QWebView):
     def __init__(self, base):
         super(WebView, self).__init__()
@@ -334,6 +348,7 @@ class Cockpit(QMainWindow):
         tab_widget.settings = self.base.settings
         self.service_tab = ServiceTab(tab_widget=tab_widget)
         self.setting_tab = SettingsTab(tab_widget=tab_widget)
+        self.about_tab = AboutTab(tab_widget=tab_widget)
         self.widget.layout().addWidget(tab_widget)
         return tab_widget
 
