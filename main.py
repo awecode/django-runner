@@ -65,6 +65,11 @@ class Settings(QSettings):
         if self.value('host'):
             return self.value('host')
         return '0.0.0.0'
+    
+    def get_about_text(self):
+        if self.value('about_text'):
+            return self.value('about_text')
+        return 'Product of <strong>Awecode</strong>'
 
     def get_port(self):
         if self.value('port'):
@@ -286,7 +291,7 @@ class AboutTab(Tab):
         pic.setGeometry(10, 10, 400, 100)
         pic.setPixmap(QPixmap(os.path.join(os.getcwd(), 'icons', 'awecode', '256.png')))
         self.layout.addWidget(pic)
-        about_text = 'Product of <strong>Awecode</strong>'
+        about_text = self.settings.get_about_text()
         text = QLabel(about_text, self)
         self.layout.addWidget(text)
 
