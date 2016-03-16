@@ -4,13 +4,11 @@ import os
 import signal
 import sys
 
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, QObject, pyqtSignal, QSize, QUrl, QRect, QThread, pyqtSlot, QProcess, \
-    QProcessEnvironment
-from PyQt5.QtGui import QIcon, QTextCursor, QColor
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess
+from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5.QtWebKitWidgets import QWebView
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QMainWindow, QAction, QHBoxLayout, \
-    QVBoxLayout, QLCDNumber, QSlider, QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QTabBar, QFormLayout, QLineEdit, \
-    QRadioButton, QLabel, QTextEdit, QSizePolicy
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
+    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit
 
 
 class Tray(QSystemTrayIcon):
@@ -126,13 +124,18 @@ class Log(QTextEdit):
 
 class Service(Tab):
     def call_program(self):
+        self.process.kill()
         self.process.setWorkingDirectory('/home/xtranophilist/pro/goms/app')
-        self.process.start('/home/xtranophilist/pro/goms/env/bin/python', ['manage.py', 'runserver'])
+        self.process.start('/home/xtranophilist/pro/goms/env/bin/python', ['manage.py', 'runserver', '--noreload'])
+        app.aboutToQuit.connect(self.cleanup)
+
+    def cleanup(self):
+        self.process.kill()
 
     def add_content(self, *args, **kwargs):
         self.console = Log()
         self.layout.addWidget(self.console)
-        self.process = QProcess(self)
+        self.process = QProcess(app)
         self.process.readyRead.connect(self.on_ready)
         self.process.error.connect(self.on_error)
         self.process.finished.connect(self.on_finish)
@@ -150,18 +153,10 @@ class Service(Tab):
             self.console.add_error(error)
 
     def on_error(self):
-        error = 'Error occurred while trying to run python manage.py runserver'
+        error = 'Error occurred while trying to run python manage.py runserver.'
         if not self.process.error() == 0:
             error += str(self.process.error())
         self.console.add_error(error)
-
-    @pyqtSlot(int)
-    def new_line(self, st):
-        self.console.add_line(st)
-
-    @pyqtSlot(int)
-    def new_error(self, st):
-        self.console.add_error(st)
 
 
 class Settings(Tab):
