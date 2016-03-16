@@ -155,22 +155,24 @@ class Service(Tab):
     def set_process_status(self, st):
         self.process_status = st
         self.status_text.setText(st)
-
-    def confirm_process_status(self):
-        import socket
+        if self.process_status == 'Started':
+            self.start_button.setEnabled(False)
+        else:
+            self.start_button.setEnabled(True)
+        if self.process_status == 'Stopped':
+            self.stop_button.setEnabled(False)
+        else:
+            self.stop_button.setEnabled(True)
 
     # def restart_process(self):
     #     self.stop_process()
     #     self.start_process()
 
     def start_process(self):
-        self.set_process_status('Starting')
         self.process.kill()
         self.process.setWorkingDirectory('/home/xtranophilist/pro/goms/app')
         self.process.start('/home/xtranophilist/pro/goms/env/bin/python', ['manage.py', 'runserver', '--noreload'])
         app.aboutToQuit.connect(self.stop_process)
-        self.set_process_status('Started')
-        self.confirm_process_status()
         self.thread = QThread(app)
         self.w = Worker()
         self.w.response[str].connect(self.port_response)
@@ -183,7 +185,6 @@ class Service(Tab):
         self.set_process_status(str)
 
     def stop_process(self):
-        self.set_process_status('Stopping')
         self.process.kill()
         self.console.add_warning('Stopped process.')
         self.set_process_status('Stopped')
@@ -202,10 +203,10 @@ class Service(Tab):
         self.start_button.clicked.connect(self.start_process)
         self.stop_button = QPushButton('Stop')
         self.stop_button.clicked.connect(self.stop_process)
-        # self.restart_button = QPushButton('Restart')
-        # self.restart_button.clicked.connect(self.restart_process)
         self.footer_layout.addWidget(self.start_button)
         self.footer_layout.addWidget(self.stop_button)
+        # self.restart_button = QPushButton('Restart')
+        # self.restart_button.clicked.connect(self.restart_process)
         # self.footer_layout.addWidget(self.restart_button)
         self.process = QProcess(app)
         self.process.readyRead.connect(self.on_ready)
@@ -216,7 +217,6 @@ class Service(Tab):
     def on_ready(self):
         txt = str(self.process.readAll(), encoding='utf-8')
         self.console.add_line(txt)
-        self.confirm_process_status()
 
     def on_finish(self):
         if not self.process_status[0:4] == 'Stop':
