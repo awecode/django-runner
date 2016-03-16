@@ -8,7 +8,7 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
 from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
-    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit
+    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton
 
 
 class Tray(QSystemTrayIcon):
@@ -123,45 +123,81 @@ class Log(QTextEdit):
         sb.setValue(sb.maximum())
         self.updateGeometry()
 
+    def add_warning(self, st):
+        self.add_line('<span style="color:yellow">' + st + '</span>')
+
     def add_error(self, st):
         self.add_line('<span style="color:red">' + st + '</span>')
 
 
 class Service(Tab):
-    def call_program(self):
+    def set_process_status(self, st):
+        self.process_status = st
+        self.status_text.setText(st)
+
+    # def restart_process(self):
+    #     self.stop_process()
+    #     self.start_process()
+
+    def start_process(self):
+        self.set_process_status('Starting')
         self.process.kill()
         self.process.setWorkingDirectory('/home/xtranophilist/pro/goms/app')
         self.process.start('/home/xtranophilist/pro/goms/env/bin/python', ['manage.py', 'runserver', '--noreload'])
-        app.aboutToQuit.connect(self.cleanup)
+        app.aboutToQuit.connect(self.stop_process)
+        self.set_process_status('Started')
 
-    def cleanup(self):
+    def stop_process(self):
+        self.set_process_status('Stopping')
         self.process.kill()
+        self.console.add_warning('Stopped process.')
+        self.set_process_status('Stopped')
 
     def add_content(self, *args, **kwargs):
         self.console = Log()
         self.layout.addWidget(self.console)
+        self.footer_layout = QHBoxLayout()
+        self.footer_layout.addStretch(1)
+        self.layout.addLayout(self.footer_layout)
+        status_label = QLabel('Status: ')
+        self.status_text = QLabel()
+        self.footer_layout.addWidget(status_label)
+        self.footer_layout.addWidget(self.status_text)
+        self.start_button = QPushButton('Start')
+        self.start_button.clicked.connect(self.start_process)
+        self.stop_button = QPushButton('Stop')
+        self.stop_button.clicked.connect(self.stop_process)
+        # self.restart_button = QPushButton('Restart')
+        # self.restart_button.clicked.connect(self.restart_process)
+        self.footer_layout.addWidget(self.start_button)
+        self.footer_layout.addWidget(self.stop_button)
+        # self.footer_layout.addWidget(self.restart_button)
         self.process = QProcess(app)
         self.process.readyRead.connect(self.on_ready)
         self.process.error.connect(self.on_error)
         self.process.finished.connect(self.on_finish)
-        self.call_program()
+        self.start_process()
 
     def on_ready(self):
         txt = str(self.process.readAll(), encoding='utf-8')
         self.console.add_line(txt)
 
     def on_finish(self):
-        error = str(self.process.readAllStandardError(), encoding='utf-8')
-        if error == '':
-            self.console.add_line('Process finished!')
-        else:
-            self.console.add_error(error)
+        if not self.process_status[0:4] == 'Stop':
+            error = str(self.process.readAllStandardError(), encoding='utf-8')
+            if error == '':
+                self.console.add_line('Process finished!')
+            else:
+                self.console.add_error(error)
+        self.set_process_status('Stopped')
 
     def on_error(self):
-        error = 'Error occurred while trying to run python manage.py runserver.'
-        if not self.process.error() == 0:
-            error += str(self.process.error())
-        self.console.add_error(error)
+        if not self.process_status[0:4] == 'Stop':
+            error = 'Error occurred while trying to run service.'
+            if not self.process.error() == 0:
+                error += str(self.process.error())
+            self.console.add_error(error)
+        self.set_process_status('Stopped')
 
 
 class Settings(Tab):
