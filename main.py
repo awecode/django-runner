@@ -4,7 +4,7 @@ import os
 import signal
 import sys
 
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
@@ -130,10 +130,34 @@ class Log(QTextEdit):
         self.add_line('<span style="color:red">' + st + '</span>')
 
 
+class Worker(QObject):
+    response = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+
+    def work(self):
+        import socket
+
+        while True:
+            import time
+
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('127.0.0.1', 8000))
+            if result == 0:
+                self.response.emit('Started')
+            else:
+                self.response.emit('Stopped')
+            time.sleep(2)
+
+
 class Service(Tab):
     def set_process_status(self, st):
         self.process_status = st
         self.status_text.setText(st)
+
+    def confirm_process_status(self):
+        import socket
 
     # def restart_process(self):
     #     self.stop_process()
@@ -146,6 +170,17 @@ class Service(Tab):
         self.process.start('/home/xtranophilist/pro/goms/env/bin/python', ['manage.py', 'runserver', '--noreload'])
         app.aboutToQuit.connect(self.stop_process)
         self.set_process_status('Started')
+        self.confirm_process_status()
+        self.thread = QThread(app)
+        self.w = Worker()
+        self.w.response[str].connect(self.port_response)
+        self.w.moveToThread(self.thread)
+        self.thread.started.connect(self.w.work)
+        self.thread.start()
+
+    @pyqtSlot(str)
+    def port_response(self, str):
+        self.set_process_status(str)
 
     def stop_process(self):
         self.set_process_status('Stopping')
@@ -181,6 +216,7 @@ class Service(Tab):
     def on_ready(self):
         txt = str(self.process.readAll(), encoding='utf-8')
         self.console.add_line(txt)
+        self.confirm_process_status()
 
     def on_finish(self):
         if not self.process_status[0:4] == 'Stop':
