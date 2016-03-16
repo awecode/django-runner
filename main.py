@@ -8,7 +8,7 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
-    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton
+    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit
 
 
 class Tray(QSystemTrayIcon):
@@ -65,7 +65,7 @@ class Settings(QSettings):
         if self.value('host'):
             return self.value('host')
         return '0.0.0.0'
-    
+
     def get_about_text(self):
         if self.value('about_text'):
             return self.value('about_text')
@@ -279,7 +279,23 @@ class ServiceTab(Tab):
 
 
 class SettingsTab(Tab):
-    pass
+    def add_content(self):
+        form = QFormLayout(self)
+        self.layout.addLayout(form)
+        python_path_label = QLabel('Python Path', self)
+        python_path_edit = QLineEdit(self)
+        form.addRow(python_path_label, python_path_edit)
+
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch(1)
+        self.layout.addLayout(buttons_layout)
+        save_button = QPushButton('Save', self)
+        save_button.clicked.connect(self.save_settings)
+        buttons_layout.addWidget(save_button)
+
+    def save_settings(self):
+        print('save')
+        pass
 
 
 class AboutTab(Tab):
