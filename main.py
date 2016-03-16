@@ -282,7 +282,7 @@ class SettingsTab(Tab):
     def add_content(self):
         form = QFormLayout(self)
         self.layout.addLayout(form)
-        python_path_label = QLabel('Python Path', self)
+        python_path_label = QLabel('Python Executable Path', self)
         python_path_edit = QLineEdit(self)
         form.addRow(python_path_label, python_path_edit)
 
