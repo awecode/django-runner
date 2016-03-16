@@ -261,7 +261,8 @@ class Cockpit(QMainWindow):
         self.show()
 
     def quit(self):
-        reply = QMessageBox.question(self, 'Exit', "Are you sure you want to stop the service?", QMessageBox.Yes | QMessageBox.No,
+        reply = QMessageBox.question(self, 'Exit', "Are you sure you want to exit and stop the service?",
+                                     QMessageBox.Yes | QMessageBox.No,
                                      QMessageBox.No)
         if reply == QMessageBox.Yes:
             return self.base.quit()
@@ -281,6 +282,10 @@ class Cockpit(QMainWindow):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
             self.close()
+
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
 
 
 def debug_trace():
