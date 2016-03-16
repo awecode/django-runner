@@ -61,6 +61,22 @@ class Settings(QSettings):
             else:
                 raise NotImplementedError('Set python or virtualenv path in settings')
 
+    def get_host(self):
+        if self.value('host'):
+            return self.value('host')
+        return '0.0.0.0'
+
+    def get_port(self):
+        if self.value('port'):
+            return int(self.value('port'))
+        return 8888
+
+    def get_addr(self):
+        return self.get_host() + ':' + str(self.get_port())
+
+    def get_url(self):
+        return 'http://' + self.get_addr()
+
 
 class Tab(QWidget):
     def __init__(self, *args, **kwargs):
@@ -149,8 +165,9 @@ class Log(QTextEdit):
 class Worker(QObject):
     response = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, settings):
         super().__init__()
+        self.settings = settings
 
     def work(self):
         import socket
@@ -159,7 +176,7 @@ class Worker(QObject):
             import time
 
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(('127.0.0.1', 8000))
+            result = sock.connect_ex((self.settings.get_host(), self.settings.get_port()))
             if result == 0:
                 self.response.emit('Started')
             else:
@@ -187,11 +204,14 @@ class ServiceTab(Tab):
     def start_process(self):
         self.set_process_status('Stopped')
         self.process.kill()
-        self.process.setWorkingDirectory('/home/xtranophilist/pro/goms/app')
-        self.process.start(self.settings.get_python_path(), ['manage.py', 'runserver', '--noreload'])
+        if self.settings.value('project_path'):
+            self.process.setWorkingDirectory(self.settings.value('project_path'))
+        process_args = ['manage.py', 'runserver', '--noreload']
+        process_args.append(self.settings.get_addr())
+        self.process.start(self.settings.get_python_path(), process_args)
         app.aboutToQuit.connect(self.stop_process)
         self.thread = QThread(app)
-        self.w = Worker()
+        self.w = Worker(self.settings)
         self.w.response[str].connect(self.port_response)
         self.w.moveToThread(self.thread)
         self.thread.started.connect(self.w.work)
@@ -263,7 +283,7 @@ class WebView(QWebView):
         self.base = base
 
     def start(self):
-        self.load(QUrl('http://127.0.0.1:8000'))
+        self.load(QUrl(self.base.settings.get_url()))
         self.show()
 
 
@@ -390,9 +410,11 @@ def debug_trace():
 
     pyqtRemoveInputHook()
     set_trace()
-    
+
+
 def which(program):
     import os
+
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -408,7 +430,6 @@ def which(program):
                 return exe_file
 
     return None
-    
 
 
 if __name__ == '__main__':
@@ -420,4 +441,3 @@ if __name__ == '__main__':
     ret = app.exec_()
     app.deleteLater()
     sys.exit(ret)
-
