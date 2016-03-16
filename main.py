@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import signal
+import subprocess
 import sys
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
@@ -27,7 +28,7 @@ class Tray(QSystemTrayIcon):
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
         view_shell.triggered.connect(lambda: self.show_tab(1))
         settings = menu.addAction(QIcon.fromTheme('emblem-system'), 'Set&tings')
-        settings.triggered.connect(self.base.quit)
+        settings.triggered.connect(self.open_settings_file)
         about = menu.addAction(QIcon.fromTheme('help-about'), '&About')
         about.triggered.connect(self.base.quit)
         backup_restore = menu.addAction(QIcon.fromTheme('media-seek-backward'), '&Backup/Restore')
@@ -40,6 +41,9 @@ class Tray(QSystemTrayIcon):
 
         self.setContextMenu(menu)
         self.show()
+        
+    def open_settings_file(self):
+        open_file('settings.ini')
 
     def show_tab(self, tab_index):
         self.base.cockpit.tabs.setCurrentIndex(tab_index)
@@ -368,7 +372,7 @@ class Cockpit(QMainWindow):
         tab_widget = QTabWidget()
         tab_widget.settings = self.base.settings
         self.service_tab = ServiceTab(tab_widget=tab_widget)
-        self.setting_tab = SettingsTab(tab_widget=tab_widget)
+        # self.setting_tab = SettingsTab(tab_widget=tab_widget)
         self.about_tab = AboutTab(tab_widget=tab_widget)
         self.widget.layout().addWidget(tab_widget)
         return tab_widget
@@ -466,6 +470,13 @@ def which(program):
                 return exe_file
 
     return None
+
+def open_file(filename):
+    if sys.platform == "win32":
+        os.startfile(filename)
+    else:
+        opener ="open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, filename])
 
 
 if __name__ == '__main__':
