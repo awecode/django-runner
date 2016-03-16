@@ -47,11 +47,27 @@ class Tray(QSystemTrayIcon):
         self.base.cockpit.activateWindow()
 
 
+class Settings(QSettings):
+    def __init__(self):
+        super(Settings, self).__init__("settings.ini", QSettings.IniFormat)
+
+    def get_python_path(self):
+        if self.value('python_path') or self.value('virtualenv_path'):
+            return str(self.value('python_path')) or str(os.path.join(self.value('virtualenv_path'), 'bin', 'python'))
+        else:
+            python_path = which('python')
+            if python_path:
+                return python_path
+            else:
+                raise NotImplementedError('Set python or virtualenv path in settings')
+
+
 class Tab(QWidget):
     def __init__(self, *args, **kwargs):
         self.tab_widget = kwargs.pop('tab_widget')
+        self.settings = self.tab_widget.settings
         super(Tab, self).__init__(*args, **kwargs)
-        self.tab_widget.addTab(self, self.__class__.__name__)
+        self.tab_widget.addTab(self, self.__class__.__name__.replace('Tab', ''))
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.add_content()
@@ -151,7 +167,7 @@ class Worker(QObject):
             time.sleep(2)
 
 
-class Service(Tab):
+class ServiceTab(Tab):
     def set_process_status(self, st):
         self.process_status = st
         self.status_text.setText(st)
@@ -169,9 +185,10 @@ class Service(Tab):
     #     self.start_process()
 
     def start_process(self):
+        self.set_process_status('Stopped')
         self.process.kill()
         self.process.setWorkingDirectory('/home/xtranophilist/pro/goms/app')
-        self.process.start('/home/xtranophilist/pro/goms/env/bin/python', ['manage.py', 'runserver', '--noreload'])
+        self.process.start(self.settings.get_python_path(), ['manage.py', 'runserver', '--noreload'])
         app.aboutToQuit.connect(self.stop_process)
         self.thread = QThread(app)
         self.w = Worker()
@@ -236,7 +253,7 @@ class Service(Tab):
         self.set_process_status('Stopped')
 
 
-class Settings(Tab):
+class SettingsTab(Tab):
     pass
 
 
@@ -253,7 +270,7 @@ class WebView(QWebView):
 class DRBase(object):
     def __init__(self, *args, **kwargs):
         self.app_icon = self.set_icon()
-        self.settings = QSettings("settings.ini", QSettings.IniFormat)
+        self.settings = Settings()
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
         self.web_view = WebView(self)
@@ -294,8 +311,9 @@ class Cockpit(QMainWindow):
 
     def create_tabs(self):
         tab_widget = QTabWidget()
-        self.service_tab = Service(tab_widget=tab_widget)
-        self.setting_tab = Settings(tab_widget=tab_widget)
+        tab_widget.settings = self.base.settings
+        self.service_tab = ServiceTab(tab_widget=tab_widget)
+        self.setting_tab = SettingsTab(tab_widget=tab_widget)
         self.widget.layout().addWidget(tab_widget)
         return tab_widget
 
@@ -372,6 +390,25 @@ def debug_trace():
 
     pyqtRemoveInputHook()
     set_trace()
+    
+def which(program):
+    import os
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+    
 
 
 if __name__ == '__main__':
@@ -383,3 +420,4 @@ if __name__ == '__main__':
     ret = app.exec_()
     app.deleteLater()
     sys.exit(ret)
+
