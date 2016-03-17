@@ -112,6 +112,12 @@ class Settings(QSettings):
             backup_file = None
         return backup_file
 
+    def get_restore_file_path(self):
+        self.beginGroup('History')
+        restore_file_val = self.value('restore_file')
+        self.endGroup()
+        return restore_file_val
+
 
 class Tab(QWidget):
     def __init__(self, *args, **kwargs):
@@ -354,14 +360,50 @@ class BackupTab(Tab):
         self.choose_backup_dir_btn.clicked.connect(self.choose_backup_dir)
         backup_dir_row.addWidget(self.choose_backup_dir_btn)
 
-        self.backup_button = QPushButton('<strong>Backup</strong>')
-        # self.backup_button.clicked.connect(self.choose_backup_dir)
+        self.backup_button = QPushButton('Backup')
+        self.backup_button.clicked.connect(self.backup)
         self.layout.addWidget(self.backup_button)
+        self.backup_message = QLabel('')
+        self.layout.addWidget(self.backup_message)
+        self.check_backup_possible()
+
+        self.layout.addWidget(QLabel('<h1>Restore</h1>'))
+        restore_file_row = QHBoxLayout()
+        self.layout.addLayout(restore_file_row)
+        restore_file_row.addWidget(QLabel('<strong>File to restore</strong>:'))
+        self.restore_location = self.settings.get_db_file_path()
+        self.restore_file = self.settings.get_restore_file_path()
+        self.restore_file_label = QLabel(self.restore_file)
+        restore_file_row.addWidget(self.restore_file_label)
+        self.choose_restore_file_btn = QPushButton('Choose File')
+        self.choose_restore_file_btn.clicked.connect(self.choose_restore_file)
+        restore_file_row.addWidget(self.choose_restore_file_btn)
+
+        restore_location_row = QHBoxLayout()
+        self.layout.addLayout(restore_location_row)
+        restore_location_row.addWidget(QLabel('<strong>Restoring as</strong>:'))
+        restore_location_row.addWidget(QLabel(self.restore_location))
+
+        self.restore_button = QPushButton('Restore')
+        self.restore_button.clicked.connect(self.restore)
+        self.layout.addWidget(self.restore_button)
+        self.restore_message = QLabel('')
+        self.layout.addWidget(self.restore_message)
+        self.check_restore_possible()
+
+    def backup(self):
+        from shutil import copy
+
+        try:
+            copy(self.backup_file, self.backup_dir)
+            self.backup_message.setText('<span style="color: green">' + 'Successfully backed up!' + '</span>')
+        except Exception as e:
+            self.backup_message.setText('<span style="color: red">' + str(e) + '</span>')
         self.check_backup_possible()
 
     def check_backup_possible(self):
-        if self.backup_dir and os.path.isfile(self.backup_file) and os.path.exists(self.backup_dir) and os.path.isdir(
-                self.backup_dir):
+        if self.backup_dir and self.backup_file and os.path.isfile(self.backup_file) and os.path.exists(
+                self.backup_dir) and os.path.isdir(self.backup_dir):
             self.backup_button.setEnabled(True)
             return True
         else:
@@ -390,6 +432,39 @@ class BackupTab(Tab):
             self.settings.endGroup()
             self.backup_dir_label.setText(self.backup_dir)
         self.check_backup_possible()
+
+    def choose_restore_file(self):
+        chosen = QFileDialog.getOpenFileName(self, 'Choose database file to restore', '')
+        if os.path.isfile(chosen[0]):
+            self.restore_file = chosen[0]
+        elif not chosen[0]:
+            return
+        else:
+            self.choose_restore_file()
+        self.settings.beginGroup('History')
+        self.settings.setValue('restore_file', self.restore_file)
+        self.settings.endGroup()
+        self.restore_file_label.setText(self.restore_file)
+        self.check_restore_possible()
+
+    def restore(self):
+        from shutil import copy
+
+        try:
+            copy(self.restore_file, self.restore_location)
+            self.restore_message.setText('<span style="color: green">' + 'Successfully restored!' + '</span>')
+        except Exception as e:
+            self.restore_message.setText('<span style="color: red">' + str(e) + '</span>')
+        self.check_restore_possible()
+
+    def check_restore_possible(self):
+        if self.restore_location and self.restore_file and os.path.isfile(self.restore_file) and os.path.exists(
+                os.path.dirname(self.restore_location)):
+            self.restore_button.setEnabled(True)
+            return True
+        else:
+            self.restore_button.setEnabled(False)
+            return False
 
 
 class AboutTab(Tab):
