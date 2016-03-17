@@ -577,6 +577,19 @@ class UpdatesTab(Tab):
         self.thread.start()
 
     def download_response(self, zip_content):
+        from io import BytesIO
+        import zipfile
+
+        zip_bytes = BytesIO(zip_content)
+        zip_file = zipfile.ZipFile(zip_bytes)
+        for name in zip_file.namelist():
+            uncompressed = zip_file.read(name)
+            outputFilename = "extracted/" + name
+            self.add_text("Saving extracted file to " + outputFilename)
+            output = open(outputFilename, 'wb')
+            output.write(uncompressed)
+            output.close()
+
         print(type(zip_content))
         debug_trace()
         pass
