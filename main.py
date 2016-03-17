@@ -124,7 +124,9 @@ class Tab(QWidget):
         self.tab_widget = kwargs.pop('tab_widget')
         self.settings = self.tab_widget.settings
         super(Tab, self).__init__(*args, **kwargs)
-        self.tab_widget.addTab(self, self.__class__.__name__.replace('Tab', ''))
+        if not hasattr(self, 'name'):
+            self.name = self.__class__.__name__.replace('Tab', '')
+        self.tab_widget.addTab(self, self.name)
         self.layout = QVBoxLayout()
         self.layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.setLayout(self.layout)
@@ -336,6 +338,8 @@ class SettingsTab(Tab):
 
 
 class BackupTab(Tab):
+    name = 'Backup/Restore'
+
     def add_content(self):
         self.layout.addWidget(QLabel('<h1>Backup</h1>'))
         backup_file_row = QHBoxLayout()
