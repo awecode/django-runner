@@ -41,7 +41,7 @@ class Tray(QSystemTrayIcon):
 
         self.setContextMenu(menu)
         self.show()
-        
+
     def open_settings_file(self):
         open_file('settings.ini')
 
@@ -80,11 +80,37 @@ class Settings(QSettings):
             return int(self.value('port'))
         return 8888
 
+    def get_db_file(self):
+        if self.value('db_file'):
+            return self.value('db_file')
+        return 'db.sqlite3'
+
+    def get_db_file_path(self):
+        return os.path.join(self.value('project_path'), self.get_db_file())
+
     def get_addr(self):
         return self.get_host() + ':' + str(self.get_port())
 
     def get_url(self):
         return 'http://' + self.get_addr()
+
+    def get_backup_dir(self):
+        self.beginGroup('History')
+        backup_dir = self.value('backup_dir')
+        self.endGroup()
+        return backup_dir
+
+    def get_backup_file_path(self):
+        self.beginGroup('History')
+        backup_file_val = self.value('backup_file')
+        self.endGroup()
+        if backup_file_val and os.path.isfile(backup_file_val):
+            backup_file = backup_file_val
+        elif os.path.isfile(self.get_db_file_path()):
+            backup_file = self.get_db_file_path()
+        else:
+            backup_file = None
+        return backup_file
 
 
 class Tab(QWidget):
@@ -302,6 +328,67 @@ class SettingsTab(Tab):
         pass
 
 
+class BackupTab(Tab):
+    def add_content(self):
+        backup_file_row = QHBoxLayout()
+        self.layout.addLayout(backup_file_row)
+        backup_file_row.addWidget(QLabel('File to be backed up:'))
+
+        self.backup_file = self.settings.get_backup_file_path()
+        self.backup_file_label = QLabel(self.backup_file)
+        backup_file_row.addWidget(self.backup_file_label)
+        self.choose_backup_file_btn = QPushButton('Choose File')
+        self.choose_backup_file_btn.clicked.connect(self.choose_backup_file)
+        backup_file_row.addWidget(self.choose_backup_file_btn)
+
+        backup_dir_row = QHBoxLayout()
+        self.layout.addLayout(backup_dir_row)
+        backup_dir_row.addWidget(QLabel('Folder to be backed up to:'))
+
+        self.backup_dir = self.settings.get_backup_dir()
+        self.backup_dir_label = QLabel(self.backup_dir)
+        backup_dir_row.addWidget(self.backup_dir_label)
+        self.choose_backup_dir_btn = QPushButton('Choose Folder')
+        self.choose_backup_dir_btn.clicked.connect(self.choose_backup_dir)
+        backup_dir_row.addWidget(self.choose_backup_dir_btn)
+
+        self.backup_button = QPushButton('Back up')
+        # self.backup_button.clicked.connect(self.choose_backup_dir)
+        self.layout.addWidget(self.backup_button)
+        self.check_backup_possible()
+        
+    def check_backup_possible(self):
+        if self.backup_dir and os.path.isfile(self.backup_file) and os.path.exists(self.backup_dir) and os.path.isdir(self.backup_dir):
+            self.backup_button.setEnabled(True)
+            return True
+        else:
+            self.backup_button.setEnabled(False)
+            return False
+
+    def choose_backup_file(self):
+        chosen = QFileDialog.getOpenFileName(self, 'Choose database file to backup', '')
+        if os.path.isfile(chosen[0]):
+            self.backup_file = chosen[0]
+        elif not chosen[0]:
+            return
+        else:
+            self.choose_backup_file()
+        self.settings.beginGroup('History')
+        self.settings.setValue('backup_file', self.backup_file)
+        self.settings.endGroup()
+        self.backup_file_label.setText(self.backup_file)
+        self.check_backup_possible()
+
+    def choose_backup_dir(self):
+        self.backup_dir = str(QFileDialog.getExistingDirectory(self, "Select directory to backup the database file to..."))
+        if os.path.exists(self.backup_dir) and os.path.isdir(self.backup_dir):
+            self.settings.beginGroup('History')
+            self.settings.setValue('backup_dir', self.backup_dir)
+            self.settings.endGroup()
+            self.backup_dir_label.setText(self.backup_dir)
+        self.check_backup_possible()
+
+
 class AboutTab(Tab):
     def add_content(self):
         # self.inner_layout = QHBoxLayout()
@@ -373,6 +460,7 @@ class Cockpit(QMainWindow):
         tab_widget.settings = self.base.settings
         self.service_tab = ServiceTab(tab_widget=tab_widget)
         # self.setting_tab = SettingsTab(tab_widget=tab_widget)
+        self.backup_tab = BackupTab(tab_widget=tab_widget)
         self.about_tab = AboutTab(tab_widget=tab_widget)
         self.widget.layout().addWidget(tab_widget)
         return tab_widget
@@ -428,9 +516,6 @@ class Cockpit(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def show_file_dialog(self):
-        file_name = QFileDialog.getOpenFileName(self, 'Open database file to restore', '')
-
     # def mousePressEvent(self, event):
     #     self.c.closeApp.emit()
 
@@ -471,11 +556,12 @@ def which(program):
 
     return None
 
+
 def open_file(filename):
     if sys.platform == "win32":
         os.startfile(filename)
     else:
-        opener ="open" if sys.platform == "darwin" else "xdg-open"
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
         subprocess.call([opener, filename])
 
 
