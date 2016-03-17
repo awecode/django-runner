@@ -578,6 +578,7 @@ class UpdatesTab(Tab):
 
     def download_response(self, zip_content):
         print(type(zip_content))
+        debug_trace()
         pass
 
     def download_error(self, st):
@@ -748,8 +749,20 @@ def open_file(filename):
         subprocess.call([opener, filename])
 
 
+class Application(QApplication):
+    def __init__(self, argv):
+        QApplication.__init__(self, argv)
+
+    def notify(self, obj, evt):
+        try:
+            # Call base class notify.
+            return QApplication.notify(self, obj, evt)
+        except Exception:
+            print("Unexpected error:", )
+
+
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = Application(sys.argv)
     app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
     base.cockpit.show_window()
