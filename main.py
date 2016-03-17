@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 import sys
+import urllib.request
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
@@ -118,6 +119,34 @@ class Settings(QSettings):
         self.endGroup()
         return restore_file_val
 
+    def get_version_file(self):
+        if self.value('version_file'):
+            return self.value('version_file')
+        return 'version'
+
+    def get_version_file_path(self):
+        return os.path.join(self.value('project_path'), self.get_version_file())
+
+    def get_version(self):
+        version_file = self.get_version_file_path()
+        if os.path.isfile(version_file):
+            with open(version_file) as f:
+                return str(f.read()).strip()
+
+    def get_remote_url(self):
+        return self.value('remote_url') or ''
+
+    def get_remote_version_url(self):
+        url = self.get_remote_url()
+        url = url.replace('github.com', 'raw.githubusercontent.com').rstrip('/')
+        url += '/master/version'
+        return url
+
+    def get_download_url(self):
+        url = self.get_remote_url().rstrip('/')
+        url += '/archive/master.zip'
+        return url
+
 
 class Tab(QWidget):
     def __init__(self, *args, **kwargs):
@@ -138,6 +167,11 @@ class Tab(QWidget):
     def add(self, content):
         self.layout.addWidget(content)
 
+    def add_text(self, txt, layout=None):
+        if not layout:
+            layout = self.layout
+        layout.addWidget(QLabel(txt))
+
     def add_line(self, content):
         label = QLabel(str(content))
         self.add(label)
@@ -156,7 +190,6 @@ class ServiceThread(QThread):
     def run(self):
         from subprocess import Popen, PIPE
 
-        print('a')
         env = os.environ.copy()
         env["PATH"] = "/home/xtranophilist/pro/goms/env/bin:" + env["PATH"]
         try:
@@ -208,12 +241,14 @@ class Log(QTextEdit):
 
 class Worker(QObject):
     response = pyqtSignal(str)
+    download_response = pyqtSignal(bytes)
+    error = pyqtSignal(str)
 
     def __init__(self, settings):
         super().__init__()
         self.settings = settings
 
-    def work(self):
+    def watch_port(self):
         import socket
 
         while True:
@@ -226,6 +261,22 @@ class Worker(QObject):
             else:
                 self.response.emit('Stopped')
             time.sleep(2)
+
+    def get_version(self):
+        try:
+            with urllib.request.urlopen(self.settings.get_remote_version_url()) as response:
+                self.response.emit(str(response.read().decode('utf-8')))
+        except Exception as e:
+            self.response.emit(str(e))
+
+    def download_update(self):
+        download_url = self.settings.get_download_url()
+        try:
+            with urllib.request.urlopen(download_url) as response:
+                zip_content = response.read()
+                self.download_response.emit(zip_content)
+        except Exception as e:
+            self.error.emit('Error: ' + str(e))
 
 
 class ServiceTab(Tab):
@@ -258,7 +309,7 @@ class ServiceTab(Tab):
         self.w = Worker(self.settings)
         self.w.response[str].connect(self.port_response)
         self.w.moveToThread(self.thread)
-        self.thread.started.connect(self.w.work)
+        self.thread.started.connect(self.w.watch_port)
         self.thread.start()
 
     @pyqtSlot(str)
@@ -483,6 +534,57 @@ class AboutTab(Tab):
         self.layout.addWidget(text)
 
 
+class UpdatesTab(Tab):
+    def add_content(self):
+        self.add_text('Local Version:')
+        self.local_version = self.settings.get_version()
+        local_version_line = QLineEdit(self.local_version)
+        local_version_line.setReadOnly(True)
+        self.layout.addWidget(local_version_line)
+        self.add_text('Remote Version:')
+        self.remote_version_line = QLineEdit('Retriveing remote version...')
+        self.remote_version_line.setReadOnly(True)
+        self.layout.addWidget(self.remote_version_line)
+        self.remote_version = self.get_remote_version()
+        self.remote_version_line.setText(self.remote_version)
+
+    def get_remote_version(self):
+        self.thread = QThread(app)
+        self.w = Worker(self.settings)
+        self.w.response[str].connect(self.version_response)
+        self.w.moveToThread(self.thread)
+        self.thread.started.connect(self.w.get_version)
+        self.thread.start()
+
+    def version_response(self, str):
+        self.remote_version = str.strip()
+        self.remote_version_line.setText(self.remote_version)
+        self.thread.terminate()
+        if self.local_version == self.remote_version:
+            return
+        update_btn = QPushButton('Update')
+        update_btn.clicked.connect(self.retrieve_updates)
+        self.layout.addWidget(update_btn)
+
+    def retrieve_updates(self):
+        self.add_text('Getting download url..')
+        self.thread = QThread(app)
+        self.w = Worker(self.settings)
+        self.w.download_response[bytes].connect(self.download_response)
+        self.w.error[str].connect(self.download_error)
+        self.w.moveToThread(self.thread)
+        self.thread.started.connect(self.w.download_update)
+        self.thread.start()
+
+    def download_response(self, zip_content):
+        print(type(zip_content))
+        pass
+
+    def download_error(self, st):
+        self.add_text('Error downloading update file.')
+        self.add_text(st)
+
+
 class WebView(QWebView):
     def __init__(self, base):
         super(WebView, self).__init__()
@@ -541,6 +643,7 @@ class Cockpit(QMainWindow):
         self.service_tab = ServiceTab(tab_widget=tab_widget)
         # self.setting_tab = SettingsTab(tab_widget=tab_widget)
         self.backup_tab = BackupTab(tab_widget=tab_widget)
+        self.updates_tab = UpdatesTab(tab_widget=tab_widget)
         self.about_tab = AboutTab(tab_widget=tab_widget)
         self.widget.layout().addWidget(tab_widget)
         return tab_widget
