@@ -120,6 +120,7 @@ class Tab(QWidget):
         super(Tab, self).__init__(*args, **kwargs)
         self.tab_widget.addTab(self, self.__class__.__name__.replace('Tab', ''))
         self.layout = QVBoxLayout()
+        self.layout.setAlignment(Qt.AlignTop|Qt.AlignLeft)
         self.setLayout(self.layout)
         self.add_content()
 
@@ -330,6 +331,8 @@ class SettingsTab(Tab):
 
 class BackupTab(Tab):
     def add_content(self):
+        # self.layout.addWidget(QLabel('<h1>Backup</h1>'))
+        
         backup_file_row = QHBoxLayout()
         self.layout.addLayout(backup_file_row)
         backup_file_row.addWidget(QLabel('File to be backed up:'))
@@ -343,7 +346,7 @@ class BackupTab(Tab):
 
         backup_dir_row = QHBoxLayout()
         self.layout.addLayout(backup_dir_row)
-        backup_dir_row.addWidget(QLabel('Folder to be backed up to:'))
+        backup_dir_row.addWidget(QLabel('Folder to back up to:'))
 
         self.backup_dir = self.settings.get_backup_dir()
         self.backup_dir_label = QLabel(self.backup_dir)
@@ -356,9 +359,10 @@ class BackupTab(Tab):
         # self.backup_button.clicked.connect(self.choose_backup_dir)
         self.layout.addWidget(self.backup_button)
         self.check_backup_possible()
-        
+
     def check_backup_possible(self):
-        if self.backup_dir and os.path.isfile(self.backup_file) and os.path.exists(self.backup_dir) and os.path.isdir(self.backup_dir):
+        if self.backup_dir and os.path.isfile(self.backup_file) and os.path.exists(self.backup_dir) and os.path.isdir(
+                self.backup_dir):
             self.backup_button.setEnabled(True)
             return True
         else:
@@ -393,7 +397,7 @@ class AboutTab(Tab):
     def add_content(self):
         # self.inner_layout = QHBoxLayout()
         # self.layout.addLayout(self.inner_layout)
-        self.layout.setAlignment(Qt.AlignHCenter)
+        self.layout.setAlignment(Qt.AlignCenter)
         pic = QLabel(self)
         pic.setGeometry(10, 10, 400, 100)
         pic.setPixmap(QPixmap(os.path.join(os.getcwd(), 'icons', 'awecode', '256.png')))
