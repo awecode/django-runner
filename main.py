@@ -172,6 +172,15 @@ class Tab(QWidget):
             layout = self.layout
         layout.addWidget(QLabel(txt))
 
+    def add_success(self, txt, layout=None):
+        self.add_text('<span style="color: green;">' + txt + '</span>', layout)
+
+    def add_warning(self, txt, layout=None):
+        self.add_text('<span style="">' + txt + '</span>', layout)
+
+    def add_error(self, txt, layout=None):
+        self.add_text('<span style="color: red;">' + txt + '</span>', layout)
+
     def add_line(self, content):
         label = QLabel(str(content))
         self.add(label)
@@ -560,14 +569,15 @@ class UpdatesTab(Tab):
         self.remote_version = str.strip()
         self.remote_version_line.setText(self.remote_version)
         self.thread.terminate()
+        self.update_btn = QPushButton('Update')
         if self.local_version == self.remote_version:
             return
-        update_btn = QPushButton('Update')
-        update_btn.clicked.connect(self.retrieve_updates)
-        self.layout.addWidget(update_btn)
+
+        self.update_btn.clicked.connect(self.retrieve_updates)
+        self.layout.addWidget(self.update_btn)
 
     def retrieve_updates(self):
-        self.add_text('Getting download url..')
+        self.add_warning('Getting download url..')
         self.thread = QThread(app)
         self.w = Worker(self.settings)
         self.w.download_response[bytes].connect(self.download_response)
@@ -575,28 +585,38 @@ class UpdatesTab(Tab):
         self.w.moveToThread(self.thread)
         self.thread.started.connect(self.w.download_update)
         self.thread.start()
+        self.add_warning('Downloading..')
+
+    def update_local_version(self):
+        self.local_version = self.settings.get_version()
+        if self.local_version == self.remote_version:
+            self.update_btn.setEnabled(False)
 
     def download_response(self, zip_content):
+        self.add_success('Downloading completed. Extracting...')
         from io import BytesIO
         import zipfile
 
         zip_bytes = BytesIO(zip_content)
         zip_file = zipfile.ZipFile(zip_bytes)
+        self.project_path = self.settings.value('project_path')
+        error = False
         for name in zip_file.namelist():
-            uncompressed = zip_file.read(name)
-            outputFilename = "extracted/" + name
-            self.add_text("Saving extracted file to " + outputFilename)
-            output = open(outputFilename, 'wb')
-            output.write(uncompressed)
-            output.close()
-
-        print(type(zip_content))
-        debug_trace()
-        pass
+            try:
+                zip_file.extract(name, self.project_path)
+            except Exception as e:
+                self.add_error(str(e))
+                self.add_error('Aborted!')
+                error = True
+                break
+        if not error:
+            self.add_success('Extracting completed.')
+            self.update_local_version()
+            self.add_success('Update complete.')
 
     def download_error(self, st):
-        self.add_text('Error downloading update file.')
-        self.add_text(st)
+        self.add_error('Error downloading update file.')
+        self.add_error(st)
 
 
 class WebView(QWebView):
