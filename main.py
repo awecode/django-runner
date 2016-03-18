@@ -531,18 +531,6 @@ class BackupTab(Tab):
             return False
 
 
-class AboutTab(Tab):
-    def add_content(self):
-        self.layout.setAlignment(Qt.AlignCenter)
-        pic = QLabel(self)
-        # pic.setGeometry(10, 10, 400, 100)
-        pic.setPixmap(QPixmap(os.path.join(os.getcwd(), 'icons', 'awecode', '256.png')))
-        self.layout.addWidget(pic)
-        about_text = self.settings.get_about_text()
-        text = QLabel(about_text, self)
-        self.layout.addWidget(text)
-
-
 class UpdatesTab(Tab):
     def add_content(self):
         self.add_text('Local Version:')
@@ -650,6 +638,56 @@ class UpdatesTab(Tab):
         self.add_error(st)
 
 
+class ToolsTab(Tab):
+    def add_content(self):
+        self.migration_btn = QPushButton('Run migrations')
+        self.migration_btn.clicked.connect(self.run_migrations)
+        self.layout.addWidget(self.migration_btn)
+
+        self.shell_btn = QPushButton('Open shell')
+        self.shell_btn.clicked.connect(self.open_shell)
+        self.layout.addWidget(self.shell_btn)
+
+        self.dbshell_btn = QPushButton('Open database shell')
+        self.dbshell_btn.clicked.connect(self.open_dbshell)
+        self.layout.addWidget(self.dbshell_btn)
+
+        self.pyc_btn = QPushButton('Clean .pyc files')
+        self.pyc_btn.clicked.connect(self.clean_pyc_files)
+        self.layout.addWidget(self.pyc_btn)
+
+        self.free_port_btn = QPushButton('Free port ' + str(self.settings.get_port()))
+        self.free_port_btn.clicked.connect(self.free_port)
+        self.layout.addWidget(self.free_port_btn)
+
+    def run_migrations(self):
+        pass
+
+    def open_shell(self):
+        pass
+
+    def open_dbshell(self):
+        pass
+
+    def clean_pyc_files(self):
+        pass
+
+    def free_port(self):
+        pass
+
+
+class AboutTab(Tab):
+    def add_content(self):
+        self.layout.setAlignment(Qt.AlignCenter)
+        pic = QLabel(self)
+        # pic.setGeometry(10, 10, 400, 100)
+        pic.setPixmap(QPixmap(os.path.join(os.getcwd(), 'icons', 'awecode', '256.png')))
+        self.layout.addWidget(pic)
+        about_text = self.settings.get_about_text()
+        text = QLabel(about_text, self)
+        self.layout.addWidget(text)
+
+
 class WebView(QWebView):
     def __init__(self, base):
         super(WebView, self).__init__()
@@ -709,6 +747,7 @@ class Cockpit(QMainWindow):
         # self.setting_tab = SettingsTab(tab_widget=tab_widget)
         self.backup_tab = BackupTab(tab_widget=tab_widget)
         self.updates_tab = UpdatesTab(tab_widget=tab_widget)
+        self.tools_tab = ToolsTab(tab_widget=tab_widget)
         self.about_tab = AboutTab(tab_widget=tab_widget)
         self.widget.layout().addWidget(tab_widget)
         return tab_widget
