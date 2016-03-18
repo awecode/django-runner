@@ -5,6 +5,10 @@ import signal
 import subprocess
 import sys
 import urllib.request
+from io import BytesIO
+import zipfile
+import tempfile
+import time
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
@@ -261,8 +265,6 @@ class Worker(QObject):
         import socket
 
         while True:
-            import time
-
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result = sock.connect_ex((self.settings.get_host(), self.settings.get_port()))
             if result == 0:
@@ -580,7 +582,7 @@ class UpdatesTab(Tab):
         self.add_warning('Getting download url..')
         self.thread = QThread(app)
         self.w = Worker(self.settings)
-        self.w.download_response[bytes].connect(self.download_response)
+        self.w.download_response[bytes].connect(self.on_response_download)
         self.w.error[str].connect(self.download_error)
         self.w.moveToThread(self.thread)
         self.thread.started.connect(self.w.download_update)
@@ -592,25 +594,35 @@ class UpdatesTab(Tab):
         if self.local_version == self.remote_version:
             self.update_btn.setEnabled(False)
 
-    def download_response(self, zip_content):
-        self.add_success('Downloading completed. Extracting...')
-        from io import BytesIO
-        import zipfile
+    def on_response_download(self, zip_content):
+        self.add_success('Downloading completed.')
 
+        tmp_dir = tempfile.gettempdir()
+        timestamp = str(time.time())
+        ext_dir = os.path.join(tmp_dir, timestamp)
+        os.makedirs(ext_dir, exist_ok=True)
         zip_bytes = BytesIO(zip_content)
         zip_file = zipfile.ZipFile(zip_bytes)
         self.project_path = self.settings.value('project_path')
+        # skip_root = True
         error = False
+        self.add_text('Extracting to temporary directory')
         for name in zip_file.namelist():
-            try:
-                zip_file.extract(name, self.project_path)
-            except Exception as e:
-                self.add_error(str(e))
-                self.add_error('Aborted!')
-                error = True
-                break
+            # if skip_root:
+            #     print(name)
+            #     name = os.path.join(*name.split('/')[1:])
+            #     print(name)
+            if name:
+                try:
+                    zip_file.extract(name, ext_dir)
+                except Exception as e:
+                    self.add_error(str(e))
+                    self.add_error('Aborted!')
+                    error = True
+                    break
         if not error:
             self.add_success('Extracting completed.')
+            # debug_trace()
             self.update_local_version()
             self.add_success('Update complete.')
 
