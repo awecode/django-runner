@@ -2,20 +2,23 @@
 # -*- coding: utf-8 -*-
 import os
 import signal
-import subprocess
 import sys
-import urllib.request
-from io import BytesIO
 import zipfile
 import tempfile
 import time
 import shutil
+import socket
+import urllib.request
+from io import BytesIO
+from subprocess import Popen, PIPE
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit
+
+from utils import debug_trace, move_files, open_file, which
 
 
 class Tray(QSystemTrayIcon):
@@ -202,7 +205,6 @@ class ServiceThread(QThread):
         self.wait()
 
     def run(self):
-        from subprocess import Popen, PIPE
 
         env = os.environ.copy()
         env["PATH"] = "/home/xtranophilist/pro/goms/env/bin:" + env["PATH"]
@@ -263,7 +265,6 @@ class Worker(QObject):
         self.settings = settings
 
     def watch_port(self):
-        import socket
 
         while True:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -459,10 +460,8 @@ class BackupTab(Tab):
         self.check_restore_possible()
 
     def backup(self):
-        from shutil import copy
-
         try:
-            copy(self.backup_file, self.backup_dir)
+            shutil.copy(self.backup_file, self.backup_dir)
             self.backup_message.setText('<span style="color: green">' + 'Successfully backed up!' + '</span>')
         except Exception as e:
             self.backup_message.setText('<span style="color: red">' + str(e) + '</span>')
@@ -515,10 +514,8 @@ class BackupTab(Tab):
         self.check_restore_possible()
 
     def restore(self):
-        from shutil import copy
-
         try:
-            copy(self.restore_file, self.restore_location)
+            shutil.copy(self.restore_file, self.restore_location)
             self.restore_message.setText('<span style="color: green">' + 'Successfully restored!' + '</span>')
         except Exception as e:
             self.restore_message.setText('<span style="color: red">' + str(e) + '</span>')
@@ -777,56 +774,6 @@ class Cockpit(QMainWindow):
     def closeEvent(self, event):
         event.ignore()
         self.hide()
-
-
-def debug_trace():
-    from PyQt5.QtCore import pyqtRemoveInputHook
-
-    from pdb import set_trace
-
-    pyqtRemoveInputHook()
-    set_trace()
-
-
-def which(program):
-    import os
-
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    return None
-
-
-def open_file(filename):
-    if sys.platform == "win32":
-        os.startfile(filename)
-    else:
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, filename])
-
-
-def move_files(src, dst):
-    for src_dir, dirs, files in os.walk(src):
-        dst_dir = src_dir.replace(src, dst, 1)
-        if not os.path.exists(dst_dir):
-            os.makedirs(dst_dir)
-        for file_ in files:
-            src_file = os.path.join(src_dir, file_)
-            dst_file = os.path.join(dst_dir, file_)
-            if os.path.exists(dst_file):
-                os.remove(dst_file)
-            shutil.move(src_file, dst_dir)
 
 
 class Application(QApplication):
