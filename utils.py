@@ -2,8 +2,9 @@ from PyQt5.QtCore import pyqtRemoveInputHook
 import os
 import sys
 import subprocess
-from pdb import set_trace
 import shutil
+from pdb import set_trace
+from glob import glob
 
 
 def debug_trace():
@@ -57,3 +58,9 @@ def call_command(param, cwd=None):
     else:
         print(param)
     subprocess.call(param, cwd=cwd)
+
+
+def clean_pyc(folder):
+    folder = folder.rstrip('/').rstrip('\\')
+    for file in glob(os.path.join(folder, '**', '*.pyc'), recursive=True):
+        os.remove(file)

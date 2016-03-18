@@ -18,7 +18,7 @@ from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit
 
-from utils import debug_trace, move_files, open_file, which, call_command
+from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc
 
 
 class Tray(QSystemTrayIcon):
@@ -616,6 +616,8 @@ class UpdatesTab(Tab):
                     break
         if not error:
             self.add_success('Extracting completed.')
+            self.add_success('Cleaning pyc files...')
+            clean_pyc(self.settings.value('project_path'))
             self.add_success('Replacing project files...')
             ext_content = os.listdir(ext_dir)
             if not len(ext_content) == 1:
@@ -670,7 +672,7 @@ class ToolsTab(Tab):
         call_command([self.settings.get_python_path(), 'manage.py', 'dbshell'], cwd=self.settings.value('project_path'))
 
     def clean_pyc_files(self):
-        pass
+        clean_pyc(self.settings.value('project_path'))
 
     def free_port(self):
         pass
