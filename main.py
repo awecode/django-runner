@@ -9,6 +9,7 @@ from io import BytesIO
 import zipfile
 import tempfile
 import time
+import shutil
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
@@ -549,11 +550,11 @@ class UpdatesTab(Tab):
     def add_content(self):
         self.add_text('Local Version:')
         self.local_version = self.settings.get_version()
-        local_version_line = QLineEdit(self.local_version)
-        local_version_line.setReadOnly(True)
-        self.layout.addWidget(local_version_line)
+        self.local_version_line = QLineEdit(self.local_version)
+        self.local_version_line.setReadOnly(True)
+        self.layout.addWidget(self.local_version_line)
         self.add_text('Remote Version:')
-        self.remote_version_line = QLineEdit('Retriveing remote version...')
+        self.remote_version_line = QLineEdit('Retrieving remote version...')
         self.remote_version_line.setReadOnly(True)
         self.layout.addWidget(self.remote_version_line)
         self.remote_version = self.get_remote_version()
@@ -591,6 +592,7 @@ class UpdatesTab(Tab):
 
     def update_local_version(self):
         self.local_version = self.settings.get_version()
+        self.local_version_line.setText(self.local_version)
         if self.local_version == self.remote_version:
             self.update_btn.setEnabled(False)
 
@@ -622,9 +624,17 @@ class UpdatesTab(Tab):
                     break
         if not error:
             self.add_success('Extracting completed.')
-            # debug_trace()
+
+            ext_content = os.listdir(ext_dir)
+            if not len(ext_content) == 1:
+                self.add_error("Extracted zip file doesn't have one and only one root folder.")
+                self.add_error('Aborted!')
+                return
+            ext_root_dir = os.path.join(ext_dir, ext_content[0])  # get the root folder
+            self.add_success('Replacing project files...')
+            move_files(ext_root_dir, self.project_path)
             self.update_local_version()
-            self.add_success('Update complete.')
+            self.add_success('Update complete!')
 
     def download_error(self, st):
         self.add_error('Error downloading update file.')
@@ -792,6 +802,19 @@ def open_file(filename):
     else:
         opener = "open" if sys.platform == "darwin" else "xdg-open"
         subprocess.call([opener, filename])
+
+
+def move_files(src, dst):
+    for src_dir, dirs, files in os.walk(src):
+        dst_dir = src_dir.replace(src, dst, 1)
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
+        for file_ in files:
+            src_file = os.path.join(src_dir, file_)
+            dst_file = os.path.join(dst_dir, file_)
+            if os.path.exists(dst_file):
+                os.remove(dst_file)
+            shutil.move(src_file, dst_dir)
 
 
 class Application(QApplication):
