@@ -18,7 +18,7 @@ from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit
 
-from utils import debug_trace, move_files, open_file, which
+from utils import debug_trace, move_files, open_file, which, call_command
 
 
 class Tray(QSystemTrayIcon):
@@ -661,13 +661,13 @@ class ToolsTab(Tab):
         self.layout.addWidget(self.free_port_btn)
 
     def run_migrations(self):
-        pass
+        call_command([self.settings.get_python_path(), 'manage.py', 'migrate'], cwd=self.settings.value('project_path'))
 
     def open_shell(self):
-        pass
+        call_command([self.settings.get_python_path(), 'manage.py', 'shell'], cwd=self.settings.value('project_path'))
 
     def open_dbshell(self):
-        pass
+        call_command([self.settings.get_python_path(), 'manage.py', 'dbshell'], cwd=self.settings.value('project_path'))
 
     def clean_pyc_files(self):
         pass

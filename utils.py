@@ -48,3 +48,12 @@ def move_files(src, dst):
             if os.path.exists(dst_file):
                 os.remove(dst_file)
             shutil.move(src_file, dst_dir)
+
+
+def call_command(param, cwd=None):
+    if sys.platform == "win32":
+        param.insert(0, 'cmd.exe')
+        param.insert(1, '/K')
+    else:
+        print(param)
+    subprocess.call(param, cwd=cwd)
