@@ -573,11 +573,15 @@ class UpdatesTab(Tab):
         self.remote_version_line.setText(self.remote_version)
         self.thread.terminate()
         self.update_btn = QPushButton('Update')
-        if self.local_version == self.remote_version:
-            return
-
         self.update_btn.clicked.connect(self.retrieve_updates)
         self.layout.addWidget(self.update_btn)
+        self.update_txt = QLabel('')
+        self.layout.addWidget(self.update_txt)
+        if self.local_version == self.remote_version:
+            self.update_btn.setEnabled(False)
+            self.update_txt.setText('Project is up-to-date!')
+        else:
+            self.update_btn.setEnabled(True)
 
     def retrieve_updates(self):
         self.add_warning('Getting download url..')
@@ -595,6 +599,9 @@ class UpdatesTab(Tab):
         self.local_version_line.setText(self.local_version)
         if self.local_version == self.remote_version:
             self.update_btn.setEnabled(False)
+            self.update_txt.setText('Project is up-to-date!')
+        else:
+            self.update_btn.setEnabled(True)
 
     def on_response_download(self, zip_content):
         self.add_success('Downloading completed.')
@@ -624,16 +631,21 @@ class UpdatesTab(Tab):
                     break
         if not error:
             self.add_success('Extracting completed.')
-
+            self.add_success('Replacing project files...')
             ext_content = os.listdir(ext_dir)
             if not len(ext_content) == 1:
                 self.add_error("Extracted zip file doesn't have one and only one root folder.")
                 self.add_error('Aborted!')
                 return
             ext_root_dir = os.path.join(ext_dir, ext_content[0])  # get the root folder
-            self.add_success('Replacing project files...')
-            move_files(ext_root_dir, self.project_path)
+            try:
+                move_files(ext_root_dir, self.project_path)
+            except Exception as e:
+                self.add_error('Error' + str(e))
+                self.add_error("Replacing of project files failed!")
+                self.add_error('Aborted!')
             self.update_local_version()
+            shutil.rmtree(ext_dir)
             self.add_success('Update complete!')
 
     def download_error(self, st):
