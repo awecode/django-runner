@@ -17,7 +17,8 @@ from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit
 
-from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, confirm_process_on_port
+from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, confirm_process_on_port, \
+    process_on_port
 
 
 class Tray(QSystemTrayIcon):
@@ -170,7 +171,15 @@ class Tab(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.setLayout(self.layout)
+        self.tab_widget.currentChanged.connect(self.tab_changed)
         self.add_content()
+
+    def tab_changed(self, i):
+        if self.tab_widget.indexOf(self) == i:
+            self.on_active()
+
+    def on_active(self):
+        pass
 
     def add_content(self):
         pass
@@ -655,7 +664,13 @@ class ToolsTab(Tab):
 
         self.free_port_btn = QPushButton('Free port ' + str(self.settings.get_port()))
         self.free_port_btn.clicked.connect(self.free_port_action)
+        self.port_message = QLabel('')
+        self.layout.addWidget(self.port_message)
         self.layout.addWidget(self.free_port_btn)
+        # self.check_port_status()
+
+    def on_active(self):
+        self.check_port_status()
 
     def run_migrations(self):
         call_command([self.settings.get_python_path(), 'manage.py', 'migrate'], cwd=self.settings.value('project_path'))
@@ -671,6 +686,20 @@ class ToolsTab(Tab):
 
     def free_port_action(self):
         free_port(self.settings.get_port())
+        self.check_port_status()
+
+    def check_port_status(self):
+        if confirm_process_on_port(self.settings.get_port(), self.settings.get_cmdline()):
+            self.port_message.setText('Port used by us.')
+            self.free_port_btn.setEnabled(True)
+        else:
+            proc_on_port = process_on_port(self.settings.get_port())
+            if proc_on_port:
+                self.port_message.setText('Port used by "' + ' '.join(proc_on_port.cmdline())+'"')
+                self.free_port_btn.setEnabled(True)
+            else:
+                self.port_message.setText('Port is free.')
+                self.free_port_btn.setEnabled(False)
 
 
 class AboutTab(Tab):
