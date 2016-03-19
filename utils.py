@@ -3,7 +3,10 @@ import os
 import sys
 import subprocess
 import shutil
-from pdb import set_trace
+from psutil import process_iter
+from psutil import AccessDenied
+from signal import SIGTERM  # or SIGKILL
+from ipdb import set_trace
 from glob import glob
 
 
@@ -64,3 +67,38 @@ def clean_pyc(folder):
     folder = folder.rstrip('/').rstrip('\\')
     for file in glob(os.path.join(folder, '**', '*.pyc'), recursive=True):
         os.remove(file)
+
+
+def free_port(port):
+    for proc in process_iter():
+        try:
+            for conns in proc.connections(kind='inet'):
+                if conns.laddr[1] == int(port):
+                    proc.send_signal(SIGTERM)  # or SIGKILL
+                    continue
+        except AccessDenied:
+            continue
+
+
+def process_on_port(port):
+    for proc in process_iter():
+        try:
+            for conns in proc.connections(kind='inet'):
+                if conns.laddr[1] == int(port):
+                    return proc
+                    continue
+        except AccessDenied:
+            continue
+
+
+def confirm_process_on_port(port, cmdline):
+    for proc in process_iter():
+        try:
+            for conns in proc.connections(kind='inet'):
+                if conns.laddr[1] == int(port):
+                    if proc.cmdline() == cmdline:
+                        return True
+                    continue
+        except AccessDenied:
+            continue
+    return False

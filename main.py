@@ -7,7 +7,6 @@ import zipfile
 import tempfile
 import time
 import shutil
-import socket
 import urllib.request
 from io import BytesIO
 from subprocess import Popen, PIPE
@@ -18,7 +17,7 @@ from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit
 
-from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc
+from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, confirm_process_on_port
 
 
 class Tray(QSystemTrayIcon):
@@ -155,6 +154,10 @@ class Settings(QSettings):
         url += '/archive/master.zip'
         return url
 
+    def get_cmdline(self):
+        cmdline = [self.get_python_path(), 'manage.py', 'runserver', '--noreload', self.get_addr()]
+        return cmdline
+
 
 class Tab(QWidget):
     def __init__(self, *args, **kwargs):
@@ -267,9 +270,7 @@ class Worker(QObject):
     def watch_port(self):
 
         while True:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex((self.settings.get_host(), self.settings.get_port()))
-            if result == 0:
+            if confirm_process_on_port(self.settings.get_port(), self.settings.get_cmdline()):
                 self.response.emit('Started')
             else:
                 self.response.emit('Stopped')
@@ -314,9 +315,8 @@ class ServiceTab(Tab):
         self.process.kill()
         if self.settings.value('project_path'):
             self.process.setWorkingDirectory(self.settings.value('project_path'))
-        process_args = ['manage.py', 'runserver', '--noreload']
-        process_args.append(self.settings.get_addr())
-        self.process.start(self.settings.get_python_path(), process_args)
+        cmdline = self.settings.get_cmdline()
+        self.process.start(cmdline[0], cmdline[1:])
         app.aboutToQuit.connect(self.stop_process)
         self.thread = QThread(app)
         self.w = Worker(self.settings)
@@ -330,9 +330,9 @@ class ServiceTab(Tab):
         self.set_process_status(str)
 
     def stop_process(self):
+        self.set_process_status('Stopped')
         self.process.kill()
         self.console.add_warning('Stopped process.')
-        self.set_process_status('Stopped')
 
     def add_content(self, *args, **kwargs):
         self.console = Log()
@@ -654,7 +654,7 @@ class ToolsTab(Tab):
         self.layout.addWidget(self.pyc_btn)
 
         self.free_port_btn = QPushButton('Free port ' + str(self.settings.get_port()))
-        self.free_port_btn.clicked.connect(self.free_port)
+        self.free_port_btn.clicked.connect(self.free_port_action)
         self.layout.addWidget(self.free_port_btn)
 
     def run_migrations(self):
@@ -669,8 +669,8 @@ class ToolsTab(Tab):
     def clean_pyc_files(self):
         clean_pyc(self.settings.value('project_path'))
 
-    def free_port(self):
-        pass
+    def free_port_action(self):
+        free_port(self.settings.get_port())
 
 
 class AboutTab(Tab):
