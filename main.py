@@ -303,6 +303,8 @@ class Worker(QObject):
 
 
 class ServiceTab(Tab):
+    manual_stop = False
+
     def set_process_status(self, st):
         self.process_status = st
         self.status_text.setText(st)
@@ -339,8 +341,9 @@ class ServiceTab(Tab):
         self.set_process_status(str)
 
     def stop_process(self):
-        self.set_process_status('Stopped')
+        self.manual_stop = True
         self.process.kill()
+        self.set_process_status('Stopped')
         self.console.add_warning('Stopped process.')
 
     def add_content(self, *args, **kwargs):
@@ -373,21 +376,23 @@ class ServiceTab(Tab):
         self.console.add_line(txt)
 
     def on_finish(self):
-        if not self.process_status[0:4] == 'Stop':
+        if not self.manual_stop:
             error = str(self.process.readAllStandardError(), encoding='utf-8')
             if error == '':
                 self.console.add_line('Process finished!')
             else:
                 self.console.add_error(error)
         self.set_process_status('Stopped')
+        self.manual_stop = True
 
     def on_error(self):
-        if not self.process_status[0:4] == 'Stop':
+        if not self.manual_stop:
             error = 'Error occurred while trying to run service.'
             if not self.process.error() == 0:
                 error += str(self.process.error())
             self.console.add_error(error)
         self.set_process_status('Stopped')
+        self.manual_stop = True
 
 
 class SettingsTab(Tab):
@@ -686,6 +691,8 @@ class ToolsTab(Tab):
 
     def free_port_action(self):
         free_port(self.settings.get_port())
+        self.tab_widget.cockpit.service_tab.manual_stop = True
+        self.tab_widget.cockpit.service_tab.console.add_warning('Port ' + str(self.settings.get_port()) + ' is now free.')
         self.check_port_status()
 
     def check_port_status(self):
@@ -695,7 +702,7 @@ class ToolsTab(Tab):
         else:
             proc_on_port = process_on_port(self.settings.get_port())
             if proc_on_port:
-                self.port_message.setText('Port used by "' + ' '.join(proc_on_port.cmdline())+'"')
+                self.port_message.setText('Port used by "' + ' '.join(proc_on_port.cmdline()) + '"')
                 self.free_port_btn.setEnabled(True)
             else:
                 self.port_message.setText('Port is free.')
@@ -768,6 +775,7 @@ class Cockpit(QMainWindow):
 
     def create_tabs(self):
         tab_widget = QTabWidget()
+        tab_widget.cockpit = self
         tab_widget.settings = self.base.settings
         self.service_tab = ServiceTab(tab_widget=tab_widget)
         # self.setting_tab = SettingsTab(tab_widget=tab_widget)
