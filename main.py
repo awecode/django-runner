@@ -15,7 +15,8 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
-    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit
+    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit, \
+    QSizePolicy
 
 from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, confirm_process_on_port, \
     process_on_port
@@ -667,12 +668,16 @@ class ToolsTab(Tab):
         self.pyc_btn.clicked.connect(self.clean_pyc_files)
         self.layout.addWidget(self.pyc_btn)
 
+        self.port_row = QHBoxLayout()
+        self.layout.addLayout(self.port_row)
         self.free_port_btn = QPushButton('Free port ' + str(self.settings.get_port()))
         self.free_port_btn.clicked.connect(self.free_port_action)
         self.port_message = QLabel('')
-        self.layout.addWidget(self.port_message)
-        self.layout.addWidget(self.free_port_btn)
-        # self.check_port_status()
+        self.port_refresh_btn = QPushButton('Refresh Port')
+        self.port_refresh_btn.clicked.connect(self.check_port_status)
+        self.port_row.addWidget(self.free_port_btn)
+        self.port_row.addWidget(self.port_message)
+        # self.port_row.addWidget(self.port_refresh_btn)
 
     def on_active(self):
         self.check_port_status()
