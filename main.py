@@ -598,14 +598,9 @@ class UpdatesTab(Tab):
         zip_bytes = BytesIO(zip_content)
         zip_file = zipfile.ZipFile(zip_bytes)
         self.project_path = self.settings.value('project_path')
-        # skip_root = True
         error = False
         self.add_text('Extracting to temporary directory')
         for name in zip_file.namelist():
-            # if skip_root:
-            #     print(name)
-            #     name = os.path.join(*name.split('/')[1:])
-            #     print(name)
             if name:
                 try:
                     zip_file.extract(name, ext_dir)
