@@ -10,6 +10,7 @@ import shutil
 import urllib.request
 from io import BytesIO
 from subprocess import Popen, PIPE
+import singleton
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
@@ -868,6 +869,7 @@ class Application(QApplication):
 
 if __name__ == '__main__':
     app = Application(sys.argv)
+    me = singleton.SingleInstance()
     app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
     base.cockpit.show_window()
