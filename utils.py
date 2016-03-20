@@ -8,6 +8,8 @@ from psutil import AccessDenied
 from signal import SIGTERM  # or SIGKILL
 from ipdb import set_trace
 from glob import glob
+from sys import executable
+
 
 
 def debug_trace():
@@ -58,9 +60,16 @@ def call_command(param, cwd=None):
     if sys.platform == "win32":
         param.insert(0, 'cmd.exe')
         param.insert(1, '/K')
+        subprocess.Popen(param, cwd=cwd, creationflags=subprocess.CREATE_NEW_CONSOLE)
     else:
-        print(param)
-    subprocess.call(param, cwd=cwd)
+        original_command = ' '.join(param)
+        # param.insert(0, 'gnome-terminal')
+        # param.insert(1, '-e')
+        # print(param)
+        cmd = ['gnome-terminal', '-x', 'bash', '-c', '"'+original_command+'; bash"']
+        print(' '.join(cmd))
+        print(cwd)
+        subprocess.Popen(cmd, cwd=cwd, shell=True)
 
 
 def clean_pyc(folder):
