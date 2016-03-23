@@ -33,6 +33,7 @@ class Tray(QSystemTrayIcon):
         self.cockpit = base.cockpit
         self.menu = self.create_menu()
         self.setToolTip(base.settings.value('title'))
+        app.aboutToQuit.connect(self.hide)
 
     def create_menu(self):
         menu = QMenu(self.cockpit)
