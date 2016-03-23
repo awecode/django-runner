@@ -10,7 +10,6 @@ import shutil
 import urllib.request
 from io import BytesIO
 from subprocess import Popen, PIPE
-import singleton
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
@@ -825,7 +824,7 @@ class Cockpit(QMainWindow):
     def show_window(self):
         self.setWindowTitle(self.base.settings.value('title'))
         self.setWindowIcon(self.base.app_icon)
-        self.resize(1000, 15000)
+        # self.resize(1000, 15000)
         # self.showMaximized()
         self.center()
         self.show()
