@@ -11,7 +11,6 @@ from glob import glob
 from sys import executable
 
 
-
 def debug_trace():
     pyqtRemoveInputHook()
     set_trace()
@@ -66,7 +65,7 @@ def call_command(param, cwd=None):
         # param.insert(0, 'gnome-terminal')
         # param.insert(1, '-e')
         # print(param)
-        cmd = ['gnome-terminal', '-x', 'bash', '-c', '"'+original_command+'; bash"']
+        cmd = ['gnome-terminal', '-x', 'bash', '-c', '"' + original_command + '; bash"']
         print(' '.join(cmd))
         print(cwd)
         subprocess.Popen(cmd, cwd=cwd, shell=True)
@@ -105,7 +104,10 @@ def confirm_process_on_port(port, cmdline):
         try:
             for conns in proc.connections(kind='inet'):
                 if conns.laddr[1] == int(port):
-                    if proc.cmdline() == cmdline:
+                    proc_cmdline = proc.cmdline()
+                    proc_exe_path = os.path.normpath(proc_cmdline.pop(0))
+                    exe_path = os.path.normpath(cmdline.pop(0))
+                    if proc_cmdline == cmdline and proc_exe_path == exe_path:
                         return True
                     continue
         except AccessDenied:
