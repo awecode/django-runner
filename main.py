@@ -858,6 +858,35 @@ class Cockpit(QMainWindow):
 class Application(QApplication):
     def __init__(self, argv):
         QApplication.__init__(self, argv)
+        self.create_mutex(argv)
+
+    def create_mutex(self, argv):
+        try:
+            from win32event import CreateMutex
+            from win32api import GetLastError
+
+            self.mutexname = "awecode_dr_" + str(argv[0])
+            self.mutex = CreateMutex(None, False, self.mutexname)
+            self.lasterror = GetLastError()
+        except ImportError:
+            pass
+
+    def already_running(self):
+        try:
+            from winerror import ERROR_ALREADY_EXISTS
+
+            return (self.lasterror == ERROR_ALREADY_EXISTS)
+        except ImportError:
+            return False
+
+    def __del__(self):
+        try:
+            from win32api import CloseHandle
+
+            if self.mutex:
+                CloseHandle(self.mutex)
+        except ImportError:
+            pass
 
     def notify(self, obj, evt):
         try:
@@ -869,10 +898,13 @@ class Application(QApplication):
 
 if __name__ == '__main__':
     app = Application(sys.argv)
-    me = singleton.SingleInstance()
+    if app.already_running():
+        print('Already running!')
+        exit(0)
     app.setWindowIcon(QIcon('icons/awecode/16.png'))
     base = DRBase()
     base.cockpit.show_window()
+    # singleton.SingleInstance(call=base.cockpit.show_window)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     ret = app.exec_()
     app.deleteLater()
