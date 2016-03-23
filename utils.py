@@ -1,3 +1,5 @@
+import fnmatch
+
 from PyQt5.QtCore import pyqtRemoveInputHook
 import os
 import sys
@@ -71,10 +73,18 @@ def call_command(param, cwd=None):
         subprocess.Popen(cmd, cwd=cwd, shell=True)
 
 
+def find_files(directory, pattern):
+    for root, dirs, files in os.walk(directory):
+        for basename in files:
+            if fnmatch.fnmatch(basename, pattern):
+                filename = os.path.join(root, basename)
+                yield filename
+
+
 def clean_pyc(folder):
     folder = folder.rstrip('/').rstrip('\\')
-    for file in glob(os.path.join(folder, '**', '*.pyc'), recursive=True):
-        os.remove(file)
+    for filename in find_files(folder, '*.pyc'):
+        os.remove(filename)
 
 
 def free_port(port):

@@ -15,11 +15,15 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
-    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, QLineEdit, \
+    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, \
+    QLineEdit, \
     QSizePolicy
 
-from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, confirm_process_on_port, \
+from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, \
+    confirm_process_on_port, \
     process_on_port
+
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 class Tray(QSystemTrayIcon):
@@ -32,7 +36,8 @@ class Tray(QSystemTrayIcon):
 
     def create_menu(self):
         menu = QMenu(self.cockpit)
-        title = menu.addAction(QIcon('icons/awecode/16.png'), self.base.settings.value('title'))
+        title = menu.addAction(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')),
+                               self.base.settings.value('title'))
         title.triggered.connect(self.base.web_view.start)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
@@ -63,7 +68,7 @@ class Tray(QSystemTrayIcon):
 
 class Settings(QSettings):
     def __init__(self):
-        super(Settings, self).__init__("settings.ini", QSettings.IniFormat)
+        super(Settings, self).__init__(os.path.join(BASE_PATH, 'settings.ini'), QSettings.IniFormat)
 
     def get_python_path(self):
         if self.value('python_path') or self.value('virtualenv_path'):
@@ -74,6 +79,9 @@ class Settings(QSettings):
                 return python_path
             else:
                 raise NotImplementedError('Set python or virtualenv path in settings')
+
+    def get_prohect_path(self):
+        return self.value('project_path') or ''
 
     def get_host(self):
         if self.value('host'):
@@ -506,7 +514,8 @@ class BackupTab(Tab):
         self.check_backup_possible()
 
     def choose_backup_dir(self):
-        self.backup_dir = str(QFileDialog.getExistingDirectory(self, "Select directory to backup the database file to..."))
+        self.backup_dir = str(
+            QFileDialog.getExistingDirectory(self, "Select directory to backup the database file to..."))
         if os.path.exists(self.backup_dir) and os.path.isdir(self.backup_dir):
             self.settings.beginGroup('History')
             self.settings.setValue('backup_dir', self.backup_dir)
@@ -697,7 +706,8 @@ class ToolsTab(Tab):
     def free_port_action(self):
         free_port(self.settings.get_port())
         self.tab_widget.cockpit.service_tab.manual_stop = True
-        self.tab_widget.cockpit.service_tab.console.add_warning('Port ' + str(self.settings.get_port()) + ' is now free.')
+        self.tab_widget.cockpit.service_tab.console.add_warning(
+            'Port ' + str(self.settings.get_port()) + ' is now free.')
         self.check_port_status()
 
     def check_port_status(self):
@@ -719,7 +729,7 @@ class AboutTab(Tab):
         self.layout.setAlignment(Qt.AlignCenter)
         pic = QLabel(self)
         # pic.setGeometry(10, 10, 400, 100)
-        pic.setPixmap(QPixmap(os.path.join(os.getcwd(), 'icons', 'awecode', '256.png')))
+        pic.setPixmap(QPixmap(os.path.join(BASE_PATH, 'icons', 'awecode', '256.png')))
         self.layout.addWidget(pic)
         about_text = self.settings.get_about_text()
         text = QLabel(about_text, self)
@@ -750,12 +760,12 @@ class DRBase(object):
 
     def set_icon(self):
         app_icon = QIcon()
-        app_icon.addFile('icons/awecode/16.png', QSize(16, 16))
-        app_icon.addFile('icons/awecode/24.png', QSize(24, 24))
-        app_icon.addFile('icons/awecode/32.png', QSize(32, 32))
-        app_icon.addFile('icons/awecode/48.png', QSize(48, 48))
-        app_icon.addFile('icons/awecode/256.png', QSize(256, 256))
-        app.setWindowIcon(QIcon('icons/awecode/16x16.png'))
+        app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/16.png'), QSize(16, 16))
+        app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/24.png'), QSize(24, 24))
+        app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/32.png'), QSize(32, 32))
+        app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/48.png'), QSize(48, 48))
+        app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/256.png'), QSize(256, 256))
+        app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16x16.png')))
         return app_icon
 
 
