@@ -748,9 +748,9 @@ class WebView(QWebView):
     def __init__(self, base):
         super(WebView, self).__init__()
         self.base = base
+        self.setWindowIcon(base.app_icon)
 
     def start(self):
-        print(self.base.settings.get_url())
         self.load(QUrl(self.base.settings.get_local_url()))
         self.show()
 
@@ -774,6 +774,7 @@ class DRBase(object):
         app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/32.png'), QSize(32, 32))
         app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/48.png'), QSize(48, 48))
         app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/256.png'), QSize(256, 256))
+        self.app_icon = app_icon
         app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16x16.png')))
         return app_icon
 
@@ -1001,7 +1002,8 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
     app.new_connection.connect(base.cockpit.opened)
-    if app.is_running:
+    # if app.is_running:
+    if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
