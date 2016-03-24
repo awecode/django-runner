@@ -16,11 +16,12 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
     QSharedMemory, QIODevice
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
-from PyQt5.QtWebKitWidgets import QWebView
+from PyQt5.QtWebKit import QWebSettings
+from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, \
     QLineEdit, \
-    QSizePolicy
+    QSizePolicy, QProgressBar, QCompleter, QShortcut
 import pickle
 
 from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, \
@@ -43,7 +44,7 @@ class Tray(QSystemTrayIcon):
         menu = QMenu(self.cockpit)
         title = menu.addAction(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')),
                                self.base.settings.value('title'))
-        title.triggered.connect(self.base.web_view.start)
+        title.triggered.connect(self.base.browser.show)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
         view_shell.triggered.connect(lambda: self.show_tab(1))
@@ -744,15 +745,70 @@ class AboutTab(Tab):
         self.layout.addWidget(text)
 
 
+class WebBrowser(QMainWindow):
+    def __init__(self, base):
+        QMainWindow.__init__(self)
+        self.sb = self.statusBar()
+        self.base = base
+        url = QUrl(self.base.settings.get_local_url())
+        self.pbar = QProgressBar()
+        self.pbar.setMaximumWidth(120)
+        self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.pbar.hide, loadStarted=self.pbar.show,
+                           titleChanged=self.setWindowTitle)
+        self.setCentralWidget(self.wb)
+
+        self.tb = self.addToolBar("Main Toolbar")
+        for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
+            self.tb.addAction(self.wb.pageAction(a))
+
+        self.url = QLineEdit(returnPressed=lambda: self.wb.setUrl(QUrl.fromUserInput(self.url.text())))
+        self.tb.addWidget(self.url)
+
+        self.wb.urlChanged.connect(lambda u: self.url.setText(u.toString()))
+        self.wb.urlChanged.connect(lambda: self.url.setCompleter(
+            QCompleter([i.url() for i in self.wb.history().items()],caseSensitivity=Qt.CaseInsensitive)))
+
+        self.wb.statusBarMessage.connect(self.sb.showMessage)
+        self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
+
+        self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text()))
+        self.search.hide()
+        self.showSearch = QShortcut("Ctrl+F", self, activated=lambda: (self.search.show(), self.search.setFocus()))
+        self.hideSearch = QShortcut("Esc", self, activated=lambda: (self.search.hide(), self.wb.setFocus()))
+
+        self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
+        self.zoomIn = QShortcut("Ctrl++", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
+        self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
+        self.zoomOne = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(1))
+        self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
+
+        self.sb.addPermanentWidget(self.search)
+        self.sb.addPermanentWidget(self.pbar)
+        self.wb.load(url)
+
+
 class WebView(QWebView):
     def __init__(self, base):
         super(WebView, self).__init__()
         self.base = base
         self.setWindowIcon(base.app_icon)
+        self.setWindowTitle(base.settings.value('title'))
+        self.loadFinished.connect(self.on_load_finish)
+        self.loadStarted.connect(self.on_load_start)
+        self.loadProgress.connect(self.on_load_progress)
 
     def start(self):
+        self.showMaximized()
         self.load(QUrl(self.base.settings.get_local_url()))
-        self.show()
+
+    def on_load_finish(self):
+        self.setWindowTitle(self.title())
+
+    def on_load_start(self):
+        print('Start')
+
+    def on_load_progress(self):
+        print('Progress')
 
 
 class DRBase(object):
@@ -761,7 +817,7 @@ class DRBase(object):
         self.settings = Settings()
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
-        self.web_view = WebView(self)
+        self.browser = WebBrowser(self)
         self.tray = Tray(self)
 
     def quit(self):
