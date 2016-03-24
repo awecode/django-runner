@@ -748,6 +748,17 @@ class AboutTab(Tab):
         self.layout.addWidget(text)
 
 
+class WebView(QWebView):
+    def __init__(self, *args, **kwargs):
+        super(WebView, self).__init__(*args, **kwargs)
+
+    def contextMenuEvent(self, event):
+        pass
+
+    def download(self, url):
+        print('download:', url)
+
+
 class WebBrowser(QMainWindow):
     def __init__(self, base):
         QMainWindow.__init__(self)
@@ -757,8 +768,8 @@ class WebBrowser(QMainWindow):
         # self.sb = self.statusBar()
         self.pbar = QProgressBar()
         self.pbar.setMaximumWidth(120)
-        self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.load_started,
-                           titleChanged=self.change_title)
+        self.wb = WebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.load_started,
+                          titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
 
         self.tb = self.addToolBar("Main Toolbar")
@@ -825,30 +836,6 @@ class WebBrowser(QMainWindow):
 
     def change_title(self):
         self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
-
-
-class WebView(QWebView):
-    def __init__(self, base):
-        super(WebView, self).__init__()
-        self.base = base
-        self.setWindowIcon(base.app_icon)
-        self.setWindowTitle(base.settings.get_title())
-        self.loadFinished.connect(self.on_load_finish)
-        self.loadStarted.connect(self.on_load_start)
-        self.loadProgress.connect(self.on_load_progress)
-
-    def start(self):
-        self.showMaximized()
-        self.load(QUrl(self.base.settings.get_local_url()))
-
-    def on_load_finish(self):
-        self.setWindowTitle(self.title())
-
-    def on_load_start(self):
-        print('Start')
-
-    def on_load_progress(self):
-        print('Progress')
 
 
 class DRBase(object):
