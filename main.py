@@ -44,7 +44,7 @@ class Tray(QSystemTrayIcon):
         menu = QMenu(self.cockpit)
         title = menu.addAction(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')),
                                self.base.settings.value('title'))
-        title.triggered.connect(self.base.browser.show)
+        title.triggered.connect(self.base.browser.start)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
         view_shell.triggered.connect(lambda: self.show_tab(1))
@@ -748,43 +748,50 @@ class AboutTab(Tab):
 class WebBrowser(QMainWindow):
     def __init__(self, base):
         QMainWindow.__init__(self)
-        self.sb = self.statusBar()
+        # self.sb = self.statusBar()
         self.base = base
-        url = QUrl(self.base.settings.get_local_url())
-        self.pbar = QProgressBar()
-        self.pbar.setMaximumWidth(120)
-        self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.pbar.hide, loadStarted=self.pbar.show,
-                           titleChanged=self.setWindowTitle)
+        # url = QUrl(self.base.settings.get_local_url())
+        # self.pbar = QProgressBar()
+        # self.pbar.setMaximumWidth(120)
+        self.wb = QWebView()
         self.setCentralWidget(self.wb)
+        # print(self.base.settings.get_local_url())
+        # self.wb.load(QUrl('http://0.0.0.0:8888'))
+        # self.wb.load(QUrl('http://google.com'))
 
-        self.tb = self.addToolBar("Main Toolbar")
-        for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
-            self.tb.addAction(self.wb.pageAction(a))
+        # self.tb = self.addToolBar("Main Toolbar")
+        # for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
+        #     self.tb.addAction(self.wb.pageAction(a))
 
-        self.url = QLineEdit(returnPressed=lambda: self.wb.setUrl(QUrl.fromUserInput(self.url.text())))
-        self.tb.addWidget(self.url)
+        # self.url = QLineEdit(returnPressed=lambda: self.wb.setUrl(QUrl.fromUserInput(self.url.text())))
+        # self.tb.addWidget(self.url)
 
-        self.wb.urlChanged.connect(lambda u: self.url.setText(u.toString()))
-        self.wb.urlChanged.connect(lambda: self.url.setCompleter(
-            QCompleter([i.url() for i in self.wb.history().items()],caseSensitivity=Qt.CaseInsensitive)))
-
-        self.wb.statusBarMessage.connect(self.sb.showMessage)
-        self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
-
-        self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text()))
-        self.search.hide()
-        self.showSearch = QShortcut("Ctrl+F", self, activated=lambda: (self.search.show(), self.search.setFocus()))
-        self.hideSearch = QShortcut("Esc", self, activated=lambda: (self.search.hide(), self.wb.setFocus()))
-
-        self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
-        self.zoomIn = QShortcut("Ctrl++", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
-        self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
-        self.zoomOne = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(1))
-        self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
-
-        self.sb.addPermanentWidget(self.search)
-        self.sb.addPermanentWidget(self.pbar)
-        self.wb.load(url)
+        # self.wb.urlChanged.connect(lambda u: self.url.setText(u.toString()))
+        # self.wb.urlChanged.connect(lambda: self.url.setCompleter(
+        #     QCompleter([i.url() for i in self.wb.history().items()],caseSensitivity=Qt.CaseInsensitive)))
+        # 
+        # self.wb.statusBarMessage.connect(self.sb.showMessage)
+        # self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
+        # 
+        # self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text()))
+        # self.search.hide()
+        # self.showSearch = QShortcut("Ctrl+F", self, activated=lambda: (self.search.show(), self.search.setFocus()))
+        # self.hideSearch = QShortcut("Esc", self, activated=lambda: (self.search.hide(), self.wb.setFocus()))
+        # 
+        # self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
+        # self.zoomIn = QShortcut("Ctrl++", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
+        # self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
+        # self.zoomOne = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(1))
+        # self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
+        # 
+        # self.sb.addPermanentWidget(self.search)
+        # self.sb.addPermanentWidget(self.pbar)
+        # self.wb.load(url)
+        
+    def start(self):
+        self.wb.load(QUrl(self.base.settings.get_local_url()))
+        self.showMaximized()
+        
 
 
 class WebView(QWebView):
