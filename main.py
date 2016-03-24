@@ -751,11 +751,12 @@ class AboutTab(Tab):
 class WebBrowser(QMainWindow):
     def __init__(self, base):
         QMainWindow.__init__(self)
-        self.sb = self.statusBar()
         self.base = base
+        self.setWindowIcon(self.base.app_icon)
+
+        self.sb = self.statusBar()
         self.pbar = QProgressBar()
         self.pbar.setMaximumWidth(120)
-        # self.wb = QWebView()
         self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.pbar.show,
                            titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
@@ -849,7 +850,6 @@ class DRBase(object):
         app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/32.png'), QSize(32, 32))
         app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/48.png'), QSize(48, 48))
         app_icon.addFile(os.path.join(BASE_PATH, 'icons/awecode/256.png'), QSize(256, 256))
-        self.app_icon = app_icon
         app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16x16.png')))
         return app_icon
 
