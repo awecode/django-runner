@@ -754,7 +754,7 @@ class WebBrowser(QMainWindow):
         self.base = base
         self.setWindowIcon(self.base.app_icon)
 
-        self.sb = self.statusBar()
+        # self.sb = self.statusBar()
         self.pbar = QProgressBar()
         self.pbar.setMaximumWidth(120)
         self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.load_started,
@@ -765,13 +765,16 @@ class WebBrowser(QMainWindow):
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
             self.tb.addAction(self.wb.pageAction(a))
 
-        self.wb.statusBarMessage.connect(self.sb.showMessage)
+        # self.wb.statusBarMessage.connect(self.sb.showMessage)
         # self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
 
         self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text(), QWebPage.FindWrapsAroundDocument))
-        self.search.hide()
-        self.showSearch = QShortcut("Ctrl+F", self, activated=lambda: (self.search.show(), self.search.setFocus()))
-        self.hideSearch = QShortcut("Esc", self, activated=lambda: (self.search.hide(), self.wb.setFocus()))
+        self.search.setPlaceholderText('Search')
+        self.showSearch = QShortcut("Ctrl+F", self, activated=self.toggle_search)
+        self.hideSearch = QShortcut("Esc", self, activated=self.hide_search)
+        self.search.setMaximumWidth(250)
+        self.search_action = self.tb.addWidget(self.search)
+        self.hide_search()
 
         self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
         self.close_tab = QShortcut("Ctrl+W", self, activated=self.close)
@@ -787,8 +790,6 @@ class WebBrowser(QMainWindow):
         self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
 
-        self.sb.addWidget(self.search)
-
     def load_started(self):
         self.pbar.show()
         self.pbar_action = self.tb.addWidget(self.pbar)
@@ -796,6 +797,21 @@ class WebBrowser(QMainWindow):
     def load_finished(self):
         self.pbar.hide()
         self.tb.removeAction(self.pbar_action)
+
+    def toggle_search(self):
+        if self.search.isVisible():
+            self.hide_search()
+        else:
+            self.show_search()
+
+    def show_search(self):
+        self.search.show()
+        self.search_action = self.tb.addWidget(self.search)
+        self.search.setFocus()
+
+    def hide_search(self):
+        self.search.hide()
+        self.tb.removeAction(self.search_action)
 
     def switch_full_screen(self):
         if self.isFullScreen():
