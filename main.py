@@ -117,6 +117,9 @@ class Settings(QSettings):
     def get_url(self):
         return 'http://' + self.get_addr()
 
+    def get_local_url(self):
+        return 'http://127.0.0.1:' + str(self.get_port())
+
     def get_backup_dir(self):
         self.beginGroup('History')
         backup_dir = self.value('backup_dir')
@@ -747,7 +750,8 @@ class WebView(QWebView):
         self.base = base
 
     def start(self):
-        self.load(QUrl(self.base.settings.get_url()))
+        print(self.base.settings.get_url())
+        self.load(QUrl(self.base.settings.get_local_url()))
         self.show()
 
 
@@ -997,14 +1001,11 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
     app.new_connection.connect(base.cockpit.opened)
-    # if app.already_running():
-    #     print('Already running!')
-    #     exit(0)
-    app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')))
     if app.is_running:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
+        app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')))
         base.cockpit.show_window()
         ret = app.exec_()
         app.deleteLater()
