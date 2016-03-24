@@ -757,7 +757,7 @@ class WebBrowser(QMainWindow):
         self.sb = self.statusBar()
         self.pbar = QProgressBar()
         self.pbar.setMaximumWidth(120)
-        self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.pbar.show,
+        self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.load_started,
                            titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
 
@@ -788,10 +788,14 @@ class WebBrowser(QMainWindow):
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
 
         self.sb.addWidget(self.search)
-        self.sb.addWidget(self.pbar)
+
+    def load_started(self):
+        self.pbar.show()
+        self.pbar_action = self.tb.addWidget(self.pbar)
 
     def load_finished(self):
         self.pbar.hide()
+        self.tb.removeAction(self.pbar_action)
 
     def switch_full_screen(self):
         if self.isFullScreen():
