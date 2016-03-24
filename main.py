@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+import getpass
 import os
 import signal
 import sys
@@ -11,13 +12,16 @@ import urllib.request
 from io import BytesIO
 from subprocess import Popen, PIPE
 
-from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot
+from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot, \
+    QSharedMemory, QIODevice
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
+from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, \
     QLineEdit, \
     QSizePolicy
+import pickle
 
 from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, \
     confirm_process_on_port, \
@@ -780,7 +784,7 @@ class Cockpit(QMainWindow):
         self.widget = self.create_widget()
         self.status_bar = self.create_status_bar()
         self.tabs = self.create_tabs()
-        self.show_window()
+        # self.show_window()
 
     def create_widget(self):
         widget = QWidget(self)
@@ -864,11 +868,93 @@ class Cockpit(QMainWindow):
         event.ignore()
         self.hide()
 
+    def opened(self):
+        try:
+            from win32gui import SetWindowPos
+            import win32con
+
+            SetWindowPos(self.winId(),
+                         win32con.HWND_TOPMOST,  # = always on top. only reliable way to bring it to the front on windows
+                         0, 0, 0, 0,
+                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+            SetWindowPos(self.winId(),
+                         win32con.HWND_NOTOPMOST,  # disable the always on top, but leave window at its top position
+                         0, 0, 0, 0,
+                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+        except ImportError:
+            pass
+        self.raise_()
+        self.show()
+        self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.activateWindow()
+
 
 class Application(QApplication):
+    timeout = 1000
+    new_connection = pyqtSignal()
+
     def __init__(self, argv):
         QApplication.__init__(self, argv)
-        self.create_mutex(argv)
+        # self.create_mutex(argv)
+        self.socket_filename = str(os.path.expanduser("~/.ipc_%s"
+                                                      % self.generate_ipc_id()))
+        self.shared_mem = QSharedMemory()
+        self.shared_mem.setKey(self.socket_filename)
+
+        if self.shared_mem.attach():
+            self.is_running = True
+            return
+
+        self.is_running = False
+        if not self.shared_mem.create(1):
+            print >> sys.stderr, "Unable to create single instance"
+            return
+        # start local server
+        self.server = QLocalServer(self)
+        # connect signal for incoming connections
+        # self.connect(self.server, self.new_connection, self.receive_message)
+        self.server.newConnection.connect(self.receive_message)
+
+        # if socket file exists, delete it
+        if os.path.exists(self.socket_filename):
+            os.remove(self.socket_filename)
+        # listen
+        self.server.listen(self.socket_filename)
+
+    def __del__(self):
+        self.shared_mem.detach()
+        if not self.is_running:
+            if os.path.exists(self.socket_filename):
+                os.remove(self.socket_filename)
+
+    def generate_ipc_id(self, channel=None):
+        if channel is None:
+            channel = os.path.basename(sys.argv[0])
+        return "%s_%s" % (channel, getpass.getuser())
+
+    def send_message(self, message):
+        if not self.is_running:
+            raise Exception("Client cannot connect to IPC server. Not running.")
+        socket = QLocalSocket(self)
+        socket.connectToServer(self.socket_filename, QIODevice.WriteOnly)
+        if not socket.waitForConnected(self.timeout):
+            raise Exception(str(socket.errorString()))
+        socket.write(pickle.dumps(message))
+        if not socket.waitForBytesWritten(self.timeout):
+            raise Exception(str(socket.errorString()))
+        socket.disconnectFromServer()
+
+    def receive_message(self):
+        socket = self.server.nextPendingConnection()
+        if not socket.waitForReadyRead(self.timeout):
+            print >> sys.stderr, socket.errorString()
+            return
+        byte_array = socket.readAll()
+        self.handle_new_message(pickle.loads(byte_array))
+
+    def handle_new_message(self, message):
+        print("Received:" + str(message))
+        self.new_connection.emit()
 
     def create_mutex(self, argv):
         try:
@@ -885,7 +971,7 @@ class Application(QApplication):
         try:
             from winerror import ERROR_ALREADY_EXISTS
 
-            return (self.lasterror == ERROR_ALREADY_EXISTS)
+            return self.lasterror == ERROR_ALREADY_EXISTS
         except ImportError:
             return False
 
@@ -908,14 +994,18 @@ class Application(QApplication):
 
 if __name__ == '__main__':
     app = Application(sys.argv)
-    if app.already_running():
-        print('Already running!')
-        exit(0)
-    app.setWindowIcon(QIcon('icons/awecode/16.png'))
-    base = DRBase()
-    base.cockpit.show_window()
-    # singleton.SingleInstance(call=base.cockpit.show_window)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    ret = app.exec_()
-    app.deleteLater()
-    sys.exit(ret)
+    base = DRBase()
+    app.new_connection.connect(base.cockpit.opened)
+    # if app.already_running():
+    #     print('Already running!')
+    #     exit(0)
+    app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')))
+    if app.is_running:
+        app.send_message(sys.argv)
+        base.tray.hide()
+    else:
+        base.cockpit.show_window()
+        ret = app.exec_()
+        app.deleteLater()
+        sys.exit(ret)
