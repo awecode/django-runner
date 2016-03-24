@@ -37,13 +37,13 @@ class Tray(QSystemTrayIcon):
         self.base = base
         self.cockpit = base.cockpit
         self.menu = self.create_menu()
-        self.setToolTip(base.settings.value('title'))
+        self.setToolTip(base.settings.get_title())
         app.aboutToQuit.connect(self.hide)
 
     def create_menu(self):
         menu = QMenu(self.cockpit)
         title = menu.addAction(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')),
-                               self.base.settings.value('title'))
+                               self.base.settings.get_title())
         title.triggered.connect(self.base.browser.start)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
@@ -85,6 +85,9 @@ class Settings(QSettings):
                 return python_path
             else:
                 raise NotImplementedError('Set python or virtualenv path in settings')
+
+    def get_title(self):
+        return self.value('title') or 'Awecode'
 
     def get_prohect_path(self):
         return self.value('project_path') or ''
@@ -752,19 +755,14 @@ class WebBrowser(QMainWindow):
         self.base = base
         self.pbar = QProgressBar()
         self.pbar.setMaximumWidth(120)
-        self.wb = QWebView()
+        # self.wb = QWebView()
+        self.wb = QWebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.pbar.show,
+                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
 
         self.tb = self.addToolBar("Main Toolbar")
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
             self.tb.addAction(self.wb.pageAction(a))
-
-        # self.url = QLineEdit(returnPressed=lambda: self.wb.setUrl(QUrl.fromUserInput(self.url.text())))
-        # self.tb.addWidget(self.url)
-
-        # self.wb.urlChanged.connect(lambda u: self.url.setText(u.toString()))
-        # self.wb.urlChanged.connect(lambda: self.url.setCompleter(
-        #     QCompleter([i.url() for i in self.wb.history().items()], caseSensitivity=Qt.CaseInsensitive)))
 
         self.wb.statusBarMessage.connect(self.sb.showMessage)
         self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
@@ -775,17 +773,24 @@ class WebBrowser(QMainWindow):
         self.hideSearch = QShortcut("Esc", self, activated=lambda: (self.search.hide(), self.wb.setFocus()))
 
         self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
-        self.zoomIn = QShortcut("Ctrl++", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
+        self.zoomIn = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
         self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
-        self.zoomOne = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(1))
+        self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
 
-        self.sb.addPermanentWidget(self.search)
-        self.sb.addPermanentWidget(self.pbar)
+        self.sb.addWidget(self.search)
+        self.sb.addWidget(self.pbar)
+
+    def load_finished(self):
+        print('finished')
+        self.pbar.hide()
 
     def start(self):
         self.wb.load(QUrl(self.base.settings.get_local_url()))
         self.showMaximized()
+
+    def change_title(self):
+        self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
 
 
 class WebView(QWebView):
@@ -793,7 +798,7 @@ class WebView(QWebView):
         super(WebView, self).__init__()
         self.base = base
         self.setWindowIcon(base.app_icon)
-        self.setWindowTitle(base.settings.value('title'))
+        self.setWindowTitle(base.settings.get_title())
         self.loadFinished.connect(self.on_load_finish)
         self.loadStarted.connect(self.on_load_start)
         self.loadProgress.connect(self.on_load_progress)
@@ -899,7 +904,7 @@ class Cockpit(QMainWindow):
         return bar
 
     def show_window(self):
-        self.setWindowTitle(self.base.settings.value('title'))
+        self.setWindowTitle(self.base.settings.get_title())
         self.setWindowIcon(self.base.app_icon)
         # self.resize(1000, 15000)
         # self.showMaximized()
