@@ -775,6 +775,12 @@ class WebBrowser(QMainWindow):
         self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
         self.close_tab = QShortcut("Ctrl+W", self, activated=self.close)
         self.show_fullscreen = QShortcut("F11", self, activated=self.switch_full_screen)
+        self.back = QShortcut("Backspace", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Back))
+        self.back_left = QShortcut("Alt+Left", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Back))
+        self.forward = QShortcut("Alt+Right", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Forward))
+        self.reload = QShortcut("Ctrl+R", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Reload))
+        self.reload_bypass_cache = QShortcut("Ctrl+Shift+R", self,
+                                             activated=lambda: self.wb.triggerPageAction(QWebPage.ReloadAndBypassCache))
         self.zoomIn = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
         self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
         self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
