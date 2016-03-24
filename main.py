@@ -765,14 +765,16 @@ class WebBrowser(QMainWindow):
             self.tb.addAction(self.wb.pageAction(a))
 
         self.wb.statusBarMessage.connect(self.sb.showMessage)
-        self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
+        # self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
 
-        self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text()))
+        self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text(), QWebPage.FindWrapsAroundDocument))
         self.search.hide()
         self.showSearch = QShortcut("Ctrl+F", self, activated=lambda: (self.search.show(), self.search.setFocus()))
         self.hideSearch = QShortcut("Esc", self, activated=lambda: (self.search.hide(), self.wb.setFocus()))
 
         self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
+        self.close_tab = QShortcut("Ctrl+W", self, activated=self.close)
+        self.show_fullscreen = QShortcut("F11", self, activated=self.switch_full_screen)
         self.zoomIn = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
         self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
         self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
@@ -782,8 +784,13 @@ class WebBrowser(QMainWindow):
         self.sb.addWidget(self.pbar)
 
     def load_finished(self):
-        print('finished')
         self.pbar.hide()
+
+    def switch_full_screen(self):
+        if self.isFullScreen():
+            self.showMaximized()
+        else:
+            self.showFullScreen()
 
     def start(self):
         self.wb.load(QUrl(self.base.settings.get_local_url()))
