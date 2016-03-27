@@ -544,8 +544,12 @@ class UpdatesTab(Tab):
         self.remote_version_line = QLineEdit('Retrieving remote version...')
         self.remote_version_line.setReadOnly(True)
         self.layout.addWidget(self.remote_version_line)
-        self.remote_version = self.get_remote_version()
-        self.remote_version_line.setText(self.remote_version)
+        self.update_btn = QPushButton('Update')
+        self.update_btn.setEnabled(False)
+        self.update_btn.clicked.connect(self.retrieve_updates)
+        self.layout.addWidget(self.update_btn)
+        self.update_txt = QLabel('')
+        self.layout.addWidget(self.update_txt)
 
     def get_remote_version(self):
         self.thread = QThread(app)
@@ -555,15 +559,14 @@ class UpdatesTab(Tab):
         self.thread.started.connect(self.w.get_version)
         self.thread.start()
 
+    def on_active(self):
+        self.get_remote_version()
+
     def version_response(self, str):
         self.remote_version = str.strip()
         self.remote_version_line.setText(self.remote_version)
         self.thread.terminate()
-        self.update_btn = QPushButton('Update')
-        self.update_btn.clicked.connect(self.retrieve_updates)
-        self.layout.addWidget(self.update_btn)
-        self.update_txt = QLabel('')
-        self.layout.addWidget(self.update_txt)
+
         if self.local_version == self.remote_version:
             self.update_btn.setEnabled(False)
             self.update_txt.setText('Project is up-to-date!')
