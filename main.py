@@ -45,7 +45,7 @@ class Tray(QSystemTrayIcon):
         menu = QMenu(self.cockpit)
         title = menu.addAction(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')),
                                self.base.settings.get_title())
-        title.triggered.connect(self.base.browser.start)
+        title.triggered.connect(self.base.browser.show_window)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
         view_shell.triggered.connect(lambda: self.show_tab(1))
@@ -186,6 +186,7 @@ class Tab(QWidget):
     def __init__(self, *args, **kwargs):
         self.tab_widget = kwargs.pop('tab_widget')
         self.settings = self.tab_widget.settings
+        self.base = self.tab_widget.cockpit.base
         super(Tab, self).__init__(*args, **kwargs)
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.replace('Tab', '')
@@ -297,6 +298,9 @@ class ServiceTab(Tab):
         self.status_text.setText(st)
         if self.process_status == 'Started':
             self.start_button.setEnabled(False)
+            if self.base.browser_waiting:
+                self.base.browser.show_window()
+                self.base.browser_waiting = False
         else:
             self.start_button.setEnabled(True)
         if self.process_status == 'Stopped':
@@ -885,9 +889,30 @@ class WebBrowser(QMainWindow):
         else:
             self.showFullScreen()
 
-    def start(self):
-        self.wb.load(QUrl(self.base.settings.get_local_url()))
+    def show_window(self):
+        self.load()
+        try:
+            from win32gui import SetWindowPos
+            import win32con
+
+            SetWindowPos(self.winId(),
+                         win32con.HWND_TOPMOST,  # = always on top. only reliable way to bring it to the front on windows
+                         0, 0, 0, 0,
+                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+            SetWindowPos(self.winId(),
+                         win32con.HWND_NOTOPMOST,  # disable the always on top, but leave window at its top position
+                         0, 0, 0, 0,
+                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+        except ImportError:
+            pass
+
+        self.raise_()
         self.showMaximized()
+        self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.activateWindow()
+
+    def load(self):
+        self.wb.load(QUrl(self.base.settings.get_local_url()))
 
     def change_title(self):
         self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
@@ -898,6 +923,8 @@ class WebBrowser(QMainWindow):
 
 
 class DRBase(object):
+    browser_waiting = True
+
     def __init__(self, *args, **kwargs):
         self.app_icon = self.set_icon()
         self.settings = Settings()
@@ -1016,26 +1043,6 @@ class Cockpit(QMainWindow):
         event.ignore()
         self.hide()
 
-    def opened(self):
-        try:
-            from win32gui import SetWindowPos
-            import win32con
-
-            SetWindowPos(self.winId(),
-                         win32con.HWND_TOPMOST,  # = always on top. only reliable way to bring it to the front on windows
-                         0, 0, 0, 0,
-                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
-            SetWindowPos(self.winId(),
-                         win32con.HWND_NOTOPMOST,  # disable the always on top, but leave window at its top position
-                         0, 0, 0, 0,
-                         win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
-        except ImportError:
-            pass
-        self.raise_()
-        self.show()
-        self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
-        self.activateWindow()
-
 
 class Application(QApplication):
     timeout = 1000
@@ -1144,14 +1151,15 @@ if __name__ == '__main__':
     app = Application(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
-    app.new_connection.connect(base.cockpit.opened)
+    app.new_connection.connect(base.browser.show_window)
     # if app.is_running:
     if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
+        if len(sys.argv) > 1 and sys.argv[1] == 'tray':
+            base.browser_waiting = False
         app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')))
-        base.cockpit.show_window()
         ret = app.exec_()
         app.deleteLater()
         sys.exit(ret)
