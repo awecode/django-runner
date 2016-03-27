@@ -784,6 +784,7 @@ class WebBrowser(QMainWindow):
                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
         self.wb.page.console_message.connect(self.console_message)
+        self.wb.page.printRequested.connect(self.on_print_request)
 
         self.tb = self.addToolBar("Main Toolbar")
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
@@ -809,7 +810,11 @@ class WebBrowser(QMainWindow):
         self.zoomIn = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
         self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
         self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
+        self.print = QShortcut("Ctrl+P", self, activated=self.on_print_request)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
+
+    def on_print_request(self):
+        print('Print')
 
     def console_message(self, msg, line, source):
         self.base.cockpit.console_tab.console.add_line('%s line %d: %s' % (source, line, msg))
