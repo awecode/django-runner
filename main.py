@@ -16,7 +16,7 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
     QSharedMemory, QIODevice, QSizeF
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
-from PyQt5.QtPrintSupport import QPrinter
+from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt5.QtPrintSupport import QPrinterInfo
 from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage, QWebInspector
@@ -819,8 +819,7 @@ class WebBrowser(QMainWindow):
         self.init_printer()
 
     def on_print_request(self):
-        print('Print requested')
-        self.print()
+        self.print_dialog()
 
     def init_printer(self):
         if not self.printer:
@@ -836,6 +835,13 @@ class WebBrowser(QMainWindow):
         self.printer.setOutputFormat(QPrinter.PdfFormat)
         self.printer.setOutputFileName(str(self.wb.title()) + '.pdf')
         self.wb.print_(self.printer)
+
+    def print_dialog(self):
+        dialog = QPrintDialog(self.printer)
+        dialog.setWindowTitle('Print')
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        self.print()
 
     def show_dev_tools(self):
         self.inspector = QWebInspector(self)
