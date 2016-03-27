@@ -228,41 +228,6 @@ class Tab(QWidget):
         self.add(label)
 
 
-class ServiceThread(QThread):
-    line_output = pyqtSignal(str)
-    line_error = pyqtSignal(str)
-
-    def __init__(self):
-        QThread.__init__(self)
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-
-        env = os.environ.copy()
-        env["PATH"] = "/home/xtranophilist/pro/goms/env/bin:" + env["PATH"]
-        try:
-            self.proc = Popen(['python', 'manage.py', 'runserver'], cwd='/home/xtranophilist/pro/goms/app',
-                              stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False, env=env)
-            while True:
-                output = self.proc.stdout.readline().decode('utf-8')
-                if output:
-                    self.line_output.emit(output)
-                else:
-                    break
-            while True:
-                error = self.proc.stderr.readline().decode('utf-8')
-                if error:
-                    self.line_error.emit(error)
-                else:
-                    break
-        except FileNotFoundError as e:
-            self.line_error.emit(str(e))
-            self.proc = None
-            self.terminate()
-
-
 class Log(QTextEdit):
     def __init__(self):
         super(Log, self).__init__()
@@ -787,7 +752,7 @@ class WebBrowser(QMainWindow):
                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
         self.wb.page.console_message.connect(self.console_message)
-        self.wb.page.printRequested.connect(self.on_print_request)
+        self.wb.page.printRequested.connect(self.print_dialog)
 
         self.tb = self.addToolBar("Main Toolbar")
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
@@ -795,8 +760,8 @@ class WebBrowser(QMainWindow):
 
         self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text(), QWebPage.FindWrapsAroundDocument))
         self.search.setPlaceholderText('Search')
-        self.showSearch = QShortcut("Ctrl+F", self, activated=self.toggle_search)
-        self.hideSearch = QShortcut("Esc", self, activated=self.hide_search)
+        QShortcut("Ctrl+F", self, activated=self.toggle_search)
+        QShortcut("Esc", self, activated=self.hide_search)
         self.search.setMaximumWidth(250)
         self.search_action = self.tb.addWidget(self.search)
         self.hide_search()
@@ -812,14 +777,11 @@ class WebBrowser(QMainWindow):
         QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
         QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
         QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
-        QShortcut("Ctrl+P", self, activated=self.on_print_request)
-        self.print_preview = QShortcut("Ctrl+Shift+P", self, activated=self.print_preview)
+        QShortcut("Ctrl+P", self, activated=self.print_dialog)
+        QShortcut("Ctrl+Shift+P", self, activated=self.print_preview)
         QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
         self.init_printer()
-
-    def on_print_request(self):
-        self.print_dialog()
 
     def init_printer(self):
         if not self.printer:
@@ -861,7 +823,7 @@ class WebBrowser(QMainWindow):
         self.dev_tools.setModal(False)
         self.dev_tools.show()
         self.dev_tools.activateWindow()
-        self.close_inspector = QShortcut("Ctrl+W", self.dev_tools, activated=self.dev_tools.close)
+        QShortcut("Ctrl+W", self.dev_tools, activated=self.dev_tools.close)
 
     def console_message(self, msg, line, source):
         self.base.cockpit.console_tab.console.add_line('%s line %d: %s' % (source, line, msg))
@@ -936,7 +898,7 @@ class Cockpit(QMainWindow):
         self.widget = self.create_widget()
         self.status_bar = self.create_status_bar()
         self.tabs = self.create_tabs()
-        self._quit = QShortcut("Ctrl+Q", self, activated=self.quit)
+        QShortcut("Ctrl+Q", self, activated=self.quit)
         # self.show_window()
 
     def create_widget(self):
