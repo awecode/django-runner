@@ -809,7 +809,9 @@ class WebBrowser(QMainWindow):
 
     def print_pdf(self):
         self.printer.setOutputFormat(QPrinter.PdfFormat)
-        self.printer.setOutputFileName(str(self.wb.title()) + '.pdf')
+        chosen_file = QFileDialog.getSaveFileName(self, 'Save file', '', '.pdf', self.wb.title())
+        file_name = ''.join(chosen_file)
+        self.printer.setOutputFileName(file_name)
         self.wb.print_(self.printer)
 
     def print_dialog(self):
