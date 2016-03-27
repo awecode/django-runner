@@ -13,9 +13,11 @@ from io import BytesIO
 from subprocess import Popen, PIPE
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot, \
-    QSharedMemory, QIODevice
+    QSharedMemory, QIODevice, QSizeF
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
+from PyQt5.QtPrintSupport import QPrinter
+from PyQt5.QtPrintSupport import QPrinterInfo
 from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage, QWebInspector
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
@@ -771,6 +773,8 @@ class WebView(QWebView):
 
 
 class WebBrowser(QMainWindow):
+    printer = None
+
     def __init__(self, base):
         QMainWindow.__init__(self)
         self.base = base
@@ -809,12 +813,29 @@ class WebBrowser(QMainWindow):
         self.zoomIn = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
         self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
         self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
-        self.print = QShortcut("Ctrl+P", self, activated=self.on_print_request)
+        self.print_shortcut = QShortcut("Ctrl+P", self, activated=self.on_print_request)
         self.reload = QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
+        self.init_printer()
 
     def on_print_request(self):
-        print('Print')
+        print('Print requested')
+        self.print()
+
+    def init_printer(self):
+        if not self.printer:
+            self.printer = QPrinter(QPrinterInfo.defaultPrinter(), QPrinter.HighResolution)
+            self.printer.setOrientation(QPrinter.Portrait)
+            self.printer.setPaperSize(QPrinter.A4)
+        return self.printer
+
+    def print(self):
+        self.wb.print_(self.printer)
+
+    def print_pdf(self):
+        self.printer.setOutputFormat(QPrinter.PdfFormat)
+        self.printer.setOutputFileName(str(self.wb.title()) + '.pdf')
+        self.wb.print_(self.printer)
 
     def show_dev_tools(self):
         self.inspector = QWebInspector(self)
