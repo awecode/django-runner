@@ -748,15 +748,27 @@ class AboutTab(Tab):
         self.layout.addWidget(text)
 
 
+class ConsoleTab(Tab):
+    def add_content(self):
+        self.console = Log()
+        self.layout.addWidget(self.console)
+
+
+class WebPage(QWebPage):
+    console_message = pyqtSignal(str, int, str)
+
+    def javaScriptConsoleMessage(self, msg, line, source):
+        self.console_message.emit(msg, line, source)
+
+
 class WebView(QWebView):
     def __init__(self, *args, **kwargs):
         super(WebView, self).__init__(*args, **kwargs)
+        self.page = WebPage()
+        self.setPage(self.page)
 
     def contextMenuEvent(self, event):
         pass
-
-    def download(self, url):
-        print('download:', url)
 
 
 class WebBrowser(QMainWindow):
@@ -764,20 +776,18 @@ class WebBrowser(QMainWindow):
         QMainWindow.__init__(self)
         self.base = base
         self.setWindowIcon(self.base.app_icon)
+        QWebSettings.globalSettings().setAttribute(QWebSettings.DeveloperExtrasEnabled, True)
 
-        # self.sb = self.statusBar()
         self.pbar = QProgressBar()
         self.pbar.setMaximumWidth(120)
         self.wb = WebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.load_started,
                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
+        self.wb.page.console_message.connect(self.console_message)
 
         self.tb = self.addToolBar("Main Toolbar")
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
             self.tb.addAction(self.wb.pageAction(a))
-
-        # self.wb.statusBarMessage.connect(self.sb.showMessage)
-        # self.wb.page().linkHovered.connect(lambda l: self.sb.showMessage(l, 3000))
 
         self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text(), QWebPage.FindWrapsAroundDocument))
         self.search.setPlaceholderText('Search')
@@ -800,6 +810,9 @@ class WebBrowser(QMainWindow):
         self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
         self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
+
+    def console_message(self, msg, line, source):
+        self.base.cockpit.console_tab.console.add_line('%s line %d: %s' % (source, line, msg))
 
     def load_started(self):
         self.pbar.show()
@@ -889,6 +902,7 @@ class Cockpit(QMainWindow):
         self.backup_tab = BackupTab(tab_widget=tab_widget)
         self.updates_tab = UpdatesTab(tab_widget=tab_widget)
         self.tools_tab = ToolsTab(tab_widget=tab_widget)
+        self.console_tab = ConsoleTab(tab_widget=tab_widget)
         self.about_tab = AboutTab(tab_widget=tab_widget)
         self.widget.layout().addWidget(tab_widget)
         return tab_widget
