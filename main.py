@@ -17,11 +17,10 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWebKit import QWebSettings
-from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+from PyQt5.QtWebKitWidgets import QWebView, QWebPage, QWebInspector
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, \
-    QLineEdit, \
-    QSizePolicy, QProgressBar, QCompleter, QShortcut
+    QLineEdit, QProgressBar, QShortcut, QDialog
 import pickle
 
 from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, \
@@ -811,10 +810,23 @@ class WebBrowser(QMainWindow):
         self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
         self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
         self.print = QShortcut("Ctrl+P", self, activated=self.on_print_request)
+        self.reload = QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
 
     def on_print_request(self):
         print('Print')
+
+    def show_dev_tools(self):
+        self.inspector = QWebInspector(self)
+        self.inspector.setPage(self.wb.page)
+        self.dev_tools = QDialog()
+        self.dev_tools_layout = QVBoxLayout()
+        self.dev_tools_layout.addWidget(self.inspector)
+        self.dev_tools.setLayout(self.dev_tools_layout)
+        self.dev_tools.setModal(False)
+        self.dev_tools.show()
+        self.dev_tools.activateWindow()
+        self.close_inspector = QShortcut("Ctrl+W", self.dev_tools, activated=self.dev_tools.close)
 
     def console_message(self, msg, line, source):
         self.base.cockpit.console_tab.console.add_line('%s line %d: %s' % (source, line, msg))
@@ -889,6 +901,7 @@ class Cockpit(QMainWindow):
         self.widget = self.create_widget()
         self.status_bar = self.create_status_bar()
         self.tabs = self.create_tabs()
+        self._quit = QShortcut("Ctrl+Q", self, activated=self.quit)
         # self.show_window()
 
     def create_widget(self):
