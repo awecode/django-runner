@@ -762,6 +762,9 @@ class WebBrowser(QMainWindow):
         self.tb = self.addToolBar('Main Toolbar')
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
             self.tb.addAction(self.wb.pageAction(a))
+        home_action = QAction(QIcon.fromTheme('go-home'), 'Home', self)
+        home_action.triggered.connect(self.load)
+        self.tb.addAction(home_action)
         self.tb.addSeparator()
         print_action = QAction(QIcon.fromTheme('document-print'), 'Print', self)
         # print_action.setShortcut('Ctrl+P')
