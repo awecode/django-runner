@@ -16,7 +16,7 @@ from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUr
     QSharedMemory, QIODevice, QSizeF
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
-from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
+from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 from PyQt5.QtPrintSupport import QPrinterInfo
 from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage, QWebInspector
@@ -801,20 +801,20 @@ class WebBrowser(QMainWindow):
         self.search_action = self.tb.addWidget(self.search)
         self.hide_search()
 
-        self.quit = QShortcut("Ctrl+Q", self, activated=self.close)
-        self.close_tab = QShortcut("Ctrl+W", self, activated=self.close)
-        self.show_fullscreen = QShortcut("F11", self, activated=self.switch_full_screen)
-        self.back = QShortcut("Backspace", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Back))
-        self.back_left = QShortcut("Alt+Left", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Back))
-        self.forward = QShortcut("Alt+Right", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Forward))
-        self.reload = QShortcut("Ctrl+R", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Reload))
-        self.reload_bypass_cache = QShortcut("Ctrl+Shift+R", self,
-                                             activated=lambda: self.wb.triggerPageAction(QWebPage.ReloadAndBypassCache))
-        self.zoomIn = QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
-        self.zoomOut = QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
-        self.zoomOne = QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
-        self.print_shortcut = QShortcut("Ctrl+P", self, activated=self.on_print_request)
-        self.reload = QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
+        QShortcut("Ctrl+Q", self, activated=self.close)
+        QShortcut("Ctrl+W", self, activated=self.close)
+        QShortcut("F11", self, activated=self.switch_full_screen)
+        QShortcut("Backspace", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Back))
+        QShortcut("Alt+Left", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Back))
+        QShortcut("Alt+Right", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Forward))
+        QShortcut("Ctrl+R", self, activated=lambda: self.wb.triggerPageAction(QWebPage.Reload))
+        QShortcut("Ctrl+Shift+R", self, activated=lambda: self.wb.triggerPageAction(QWebPage.ReloadAndBypassCache))
+        QShortcut("Ctrl+=", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() + .2))
+        QShortcut("Ctrl+-", self, activated=lambda: self.wb.setZoomFactor(self.wb.zoomFactor() - .2))
+        QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
+        QShortcut("Ctrl+P", self, activated=self.on_print_request)
+        self.print_preview = QShortcut("Ctrl+Shift+P", self, activated=self.print_preview)
+        QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
         self.init_printer()
 
@@ -842,6 +842,14 @@ class WebBrowser(QMainWindow):
         if dialog.exec_() != QDialog.Accepted:
             return
         self.print()
+
+    def print_preview(self):
+        dialog = QPrintPreviewDialog(self.printer)
+        dialog.setWindowState(Qt.WindowMaximized)
+        dialog.paintRequested.connect(self.print)
+        dialog.setWindowFlags(
+            Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint | Qt.WindowContextHelpButtonHint)
+        dialog.exec()
 
     def show_dev_tools(self):
         self.inspector = QWebInspector(self)
