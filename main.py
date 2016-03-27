@@ -889,6 +889,10 @@ class WebBrowser(QMainWindow):
     def change_title(self):
         self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
 
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
+
 
 class DRBase(object):
     def __init__(self, *args, **kwargs):
