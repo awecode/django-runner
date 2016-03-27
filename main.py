@@ -751,20 +751,30 @@ class WebBrowser(QMainWindow):
         self.wb = WebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.load_started,
                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
-        self.wb.page.console_message.connect(self.console_message)
-        self.wb.page.printRequested.connect(self.print_dialog)
 
-        self.tb = self.addToolBar("Main Toolbar")
+        self.tb = self.addToolBar('Main Toolbar')
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
             self.tb.addAction(self.wb.pageAction(a))
+        self.tb.addSeparator()
+        print_action = QAction(QIcon.fromTheme('document-print'), 'Print', self)
+        # print_action.setShortcut('Ctrl+P')
+        print_action.triggered.connect(self.print_dialog)
+        self.tb.addAction(print_action)
+        print_preview_action = QAction(QIcon.fromTheme('document-print-preview'), 'Print Preview', self)
+        print_preview_action.triggered.connect(self.print_preview)
+        self.tb.addAction(print_preview_action)
+        print_pdf_action = QAction(QIcon.fromTheme('document-save'), 'Save as PDF', self)
+        print_pdf_action.triggered.connect(self.print_pdf)
+        self.tb.addAction(print_pdf_action)
+        self.tb.addSeparator()
 
         self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text(), QWebPage.FindWrapsAroundDocument))
         self.search.setPlaceholderText('Search')
-        QShortcut("Ctrl+F", self, activated=self.toggle_search)
-        QShortcut("Esc", self, activated=self.hide_search)
+        QShortcut("Ctrl+F", self, activated=self.toggle_search_focus)
+        QShortcut("Esc", self, activated=self.remove_search_focus)
         self.search.setMaximumWidth(250)
         self.search_action = self.tb.addWidget(self.search)
-        self.hide_search()
+        # self.hide_search()
 
         QShortcut("Ctrl+Q", self, activated=self.close)
         QShortcut("Ctrl+W", self, activated=self.close)
@@ -779,7 +789,11 @@ class WebBrowser(QMainWindow):
         QShortcut("Ctrl+0", self, activated=lambda: self.wb.setZoomFactor(1))
         QShortcut("Ctrl+P", self, activated=self.print_dialog)
         QShortcut("Ctrl+Shift+P", self, activated=self.print_preview)
+        QShortcut("Ctrl+Shift+E", self, activated=self.print_pdf)
         QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
+
+        self.wb.page.console_message.connect(self.console_message)
+        self.wb.page.printRequested.connect(self.print_dialog)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
         self.init_printer()
 
@@ -841,6 +855,15 @@ class WebBrowser(QMainWindow):
             self.hide_search()
         else:
             self.show_search()
+
+    def toggle_search_focus(self):
+        if self.search.hasFocus():
+            self.wb.setFocus()
+        else:
+            self.search.setFocus()
+
+    def remove_search_focus(self):
+        self.wb.setFocus()
 
     def show_search(self):
         self.search.show()
