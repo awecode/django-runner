@@ -21,7 +21,7 @@ from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage, QWebInspector
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, \
-    QLineEdit, QProgressBar, QShortcut, QDialog, QStyle
+    QLineEdit, QProgressBar, QShortcut, QDialog, QStyle, QWidgetItem, QSpacerItem
 import pickle
 
 from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, \
@@ -394,23 +394,106 @@ class ServiceTab(Tab):
 
 class SettingsTab(Tab):
     def add_content(self):
-        form = QFormLayout(self)
-        self.layout.addLayout(form)
+        project_path_row = QHBoxLayout()
+        self.layout.addLayout(project_path_row)
+        project_path_label = QLabel('Project Path', self)
+        project_path_edit = QLineEdit(self)
+        project_path_button = QPushButton('Choose folder')
+        project_path_row.addWidget(project_path_label)
+        project_path_row.addWidget(project_path_edit)
+        project_path_row.addWidget(project_path_button)
+
+        python_path_row = QHBoxLayout()
+        self.layout.addLayout(python_path_row)
         python_path_label = QLabel('Python Executable Path', self)
         python_path_edit = QLineEdit(self)
-        form.addRow(python_path_label, python_path_edit)
+        python_path_button = QPushButton('Choose file')
+        python_path_row.addWidget(python_path_label)
+        python_path_row.addWidget(python_path_edit)
+        python_path_row.addWidget(python_path_button)
+
+        virtualenv_path_row = QHBoxLayout()
+        self.layout.addLayout(virtualenv_path_row)
+        virtualenv_path_label = QLabel('Virtualenv Path', self)
+        virtualenv_path_edit = QLineEdit(self)
+        virtualenv_path_button = QPushButton('Choose folder')
+        virtualenv_path_row.addWidget(virtualenv_path_label)
+        virtualenv_path_row.addWidget(virtualenv_path_edit)
+        virtualenv_path_row.addWidget(virtualenv_path_button)
+
+        db_file_row = QHBoxLayout()
+        self.layout.addLayout(db_file_row)
+        db_file_label = QLabel('Database File', self)
+        db_file_edit = QLineEdit(self)
+        db_file_button = QPushButton('Choose file')
+        db_file_row.addWidget(db_file_label)
+        db_file_row.addWidget(db_file_edit)
+        db_file_row.addWidget(db_file_button)
+
+        version_file_row = QHBoxLayout()
+        self.layout.addLayout(version_file_row)
+        version_file_label = QLabel('Version File', self)
+        version_file_edit = QLineEdit(self)
+        version_file_button = QPushButton('Choose file')
+        version_file_row.addWidget(version_file_label)
+        version_file_row.addWidget(version_file_edit)
+        version_file_row.addWidget(version_file_button)
+
+        remote_url_row = QHBoxLayout()
+        self.layout.addLayout(remote_url_row)
+        remote_url_label = QLabel('Remote URL', self)
+        remote_url_edit = QLineEdit(self)
+        remote_url_row.addWidget(remote_url_label)
+        remote_url_row.addWidget(remote_url_edit)
+
+        host_row = QHBoxLayout()
+        self.layout.addLayout(host_row)
+        host_label = QLabel('Host', self)
+        host_edit = QLineEdit(self)
+        host_row.addWidget(host_label)
+        host_row.addWidget(host_edit)
+
+        port_row = QHBoxLayout()
+        self.layout.addLayout(port_row)
+        port_label = QLabel('Port', self)
+        port_edit = QLineEdit(self)
+        port_row.addWidget(port_label)
+        port_row.addWidget(port_edit)
 
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch(1)
         self.layout.addLayout(buttons_layout)
+        save_msg = QLabel('', self)
+        buttons_layout.addWidget(save_msg)
         save_button = QPushButton('Save', self)
         save_button.clicked.connect(self.save_settings)
         buttons_layout.addWidget(save_button)
+        reset_button = QPushButton('Reset', self)
+        reset_button.clicked.connect(self.reset)
+        buttons_layout.addWidget(reset_button)
 
     def save_settings(self):
         print('save')
-        pass
+        self.reset()
 
+    def clear_layout(self, layout):
+        for i in reversed(range(layout.count())):
+            item = layout.itemAt(i)
+
+            if isinstance(item, QWidgetItem):
+                item.widget().close()
+                # or
+                # item.widget().setParent(None)
+            elif isinstance(item, QSpacerItem):
+                # no need to do extra stuff
+                pass
+            else:
+                self.clear_layout(item.layout())
+            layout.removeItem(item)
+
+    def reset(self):
+        self.clear_layout(self.layout)
+        self.add_content()
 
 class BackupTab(Tab):
     name = 'Backup/Restore'
@@ -987,7 +1070,7 @@ class Cockpit(QMainWindow):
         tab_widget.cockpit = self
         tab_widget.settings = self.base.settings
         self.service_tab = ServiceTab(tab_widget=tab_widget)
-        # self.setting_tab = SettingsTab(tab_widget=tab_widget)
+        self.setting_tab = SettingsTab(tab_widget=tab_widget)
         self.backup_tab = BackupTab(tab_widget=tab_widget)
         self.updates_tab = UpdatesTab(tab_widget=tab_widget)
         self.tools_tab = ToolsTab(tab_widget=tab_widget)
