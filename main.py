@@ -300,6 +300,7 @@ class ServiceTab(Tab):
     def set_process_status(self, st):
         self.process_status = st
         self.status_text.setText(st)
+
         if self.process_status == 'Started':
             self.start_button.setEnabled(False)
             if self.base.browser_waiting:
@@ -324,12 +325,7 @@ class ServiceTab(Tab):
         cmdline = self.settings.get_cmdline()
         self.process.start(cmdline[0], cmdline[1:])
         app.aboutToQuit.connect(self.stop_process)
-        self.thread = QThread(app)
-        self.w = Worker(self.settings)
-        self.w.response[str].connect(self.port_response)
-        self.w.moveToThread(self.thread)
-        self.thread.started.connect(self.w.watch_port)
-        self.thread.start()
+        self.set_process_status('Started')
 
     @pyqtSlot(str)
     def port_response(self, str):
@@ -930,9 +926,9 @@ class WebBrowser(QMainWindow):
     def change_title(self):
         self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
 
-    # def closeEvent(self, event):
-    #     event.ignore()
-    #     self.hide()
+        # def closeEvent(self, event):
+        #     event.ignore()
+        #     self.hide()
 
 
 class DRBase(object):
@@ -1052,9 +1048,9 @@ class Cockpit(QMainWindow):
         if e.key() == Qt.Key_Escape:
             self.close()
 
-    # def closeEvent(self, event):
-    #     event.ignore()
-    #     self.hide()
+            # def closeEvent(self, event):
+            #     event.ignore()
+            #     self.hide()
 
 
 class Application(QApplication):
