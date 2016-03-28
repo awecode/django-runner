@@ -296,6 +296,7 @@ class Worker(QObject):
 
 class ServiceTab(Tab):
     manual_stop = False
+    service_status = pyqtSignal(str)
 
     def set_process_status(self, st):
         self.process_status = st
@@ -313,6 +314,7 @@ class ServiceTab(Tab):
             self.stop_button.setEnabled(False)
         else:
             self.stop_button.setEnabled(True)
+        self.service_status.emit(str(st))
 
     # def restart_process(self):
     #     self.stop_process()
@@ -1086,6 +1088,8 @@ class DRBase(object):
 
 
 class Cockpit(QMainWindow):
+    service_status = 'Stopped'
+
     def __init__(self, base):
         super(Cockpit, self).__init__()
         self.base = base
@@ -1110,6 +1114,7 @@ class Cockpit(QMainWindow):
         tab_widget.cockpit = self
         tab_widget.settings = self.base.settings
         self.service_tab = ServiceTab(tab_widget=tab_widget)
+        self.service_tab.service_status.connect(self.set_status)
         self.setting_tab = SettingsTab(tab_widget=tab_widget)
         self.backup_tab = BackupTab(tab_widget=tab_widget)
         self.updates_tab = UpdatesTab(tab_widget=tab_widget)
@@ -1131,6 +1136,10 @@ class Cockpit(QMainWindow):
         bar = self.statusBar()
         bar.showMessage(self.base.status_text)
         return bar
+
+    def set_status(self, st):
+        self.statusBar().showMessage(st)
+        self.service_status = st
 
     def create_menu_bar(self):
         exit_action = QAction(QIcon.fromTheme('exit'), 'E&xit', self)
