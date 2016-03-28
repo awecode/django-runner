@@ -10,10 +10,9 @@ import time
 import shutil
 import urllib.request
 from io import BytesIO
-from subprocess import Popen, PIPE
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot, \
-    QSharedMemory, QIODevice, QSizeF
+    QSharedMemory, QIODevice
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
@@ -931,9 +930,9 @@ class WebBrowser(QMainWindow):
     def change_title(self):
         self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
 
-    def closeEvent(self, event):
-        event.ignore()
-        self.hide()
+    # def closeEvent(self, event):
+    #     event.ignore()
+    #     self.hide()
 
 
 class DRBase(object):
@@ -1037,10 +1036,8 @@ class Cockpit(QMainWindow):
         reply = QMessageBox.question(self, 'Exit', "Are you sure you want to exit and stop the service?",
                                      QMessageBox.Yes | QMessageBox.No,
                                      QMessageBox.No)
-        # print(reply == QMessageBox.Yes)
-        #
-        # if reply == QMessageBox.Yes:
-        #     return self.base.quit()
+        if reply == QMessageBox.Yes:
+            return self.base.quit()
 
     def center(self):
         qr = self.frameGeometry()
@@ -1055,9 +1052,9 @@ class Cockpit(QMainWindow):
         if e.key() == Qt.Key_Escape:
             self.close()
 
-    def closeEvent(self, event):
-        event.ignore()
-        self.hide()
+    # def closeEvent(self, event):
+    #     event.ignore()
+    #     self.hide()
 
 
 class Application(QApplication):
@@ -1168,8 +1165,9 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
     app.new_connection.connect(base.browser.show_window)
-    if app.is_running:
-        # if False:
+    app.setQuitOnLastWindowClosed(False)
+    # if app.is_running:
+    if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
