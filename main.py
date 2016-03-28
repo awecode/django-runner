@@ -43,9 +43,9 @@ class Tray(QSystemTrayIcon):
 
     def create_menu(self):
         menu = QMenu(self.cockpit)
-        title = menu.addAction(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')),
-                               self.base.settings.get_title())
-        title.triggered.connect(self.base.browser.show_window)
+        self.title = menu.addAction(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')),
+                                    self.base.settings.get_title())
+        self.title.triggered.connect(self.base.browser.show_window)
         menu.addSeparator()
         view_shell = menu.addAction(QIcon.fromTheme('text-x-script'), '&View Shell')
         view_shell.triggered.connect(lambda: self.show_tab(1))
@@ -75,6 +75,12 @@ class Tray(QSystemTrayIcon):
         self.base.cockpit.tabs.setCurrentIndex(tab_index)
         self.base.cockpit.show()
         self.base.cockpit.activateWindow()
+
+    def service_status(self, st):
+        if st == 'Started':
+            self.title.setEnabled(True)
+        else:
+            self.title.setEnabled(False)
 
 
 class Settings(QSettings):
@@ -1072,6 +1078,7 @@ class DRBase(object):
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
         self.tray = Tray(self)
+        self.cockpit.service_status.connect(self.tray.service_status)
 
     def quit(self):
         return QCoreApplication.instance().quit()
@@ -1088,7 +1095,7 @@ class DRBase(object):
 
 
 class Cockpit(QMainWindow):
-    service_status = 'Stopped'
+    service_status = pyqtSignal(str)
 
     def __init__(self, base):
         super(Cockpit, self).__init__()
@@ -1139,7 +1146,7 @@ class Cockpit(QMainWindow):
 
     def set_status(self, st):
         self.statusBar().showMessage(st)
-        self.service_status = st
+        self.service_status.emit(st)
 
     def create_menu_bar(self):
         exit_action = QAction(QIcon.fromTheme('exit'), 'E&xit', self)
