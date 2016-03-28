@@ -397,76 +397,79 @@ class SettingsTab(Tab):
         project_path_row = QHBoxLayout()
         self.layout.addLayout(project_path_row)
         project_path_label = QLabel('Project Path', self)
-        project_path_edit = QLineEdit(self)
-        project_path_edit.setText(self.settings.get_project_path())
+        self.project_path_edit = QLineEdit(self)
+        self.project_path_edit.setText(self.settings.get_project_path())
         project_path_button = QPushButton('Choose folder')
+        project_path_button.clicked.connect(self.choose_project_path)
         project_path_row.addWidget(project_path_label)
-        project_path_row.addWidget(project_path_edit)
+        project_path_row.addWidget(self.project_path_edit)
         project_path_row.addWidget(project_path_button)
 
         python_path_row = QHBoxLayout()
         self.layout.addLayout(python_path_row)
         python_path_label = QLabel('Python Executable Path', self)
-        python_path_edit = QLineEdit(self)
-        python_path_edit.setText(self.settings.get_python_path())
+        self.python_path_edit = QLineEdit(self)
+        self.python_path_edit.setText(self.settings.get_python_path())
         python_path_button = QPushButton('Choose file')
+        python_path_button.clicked.connect(self.choose_python_executable)
         python_path_row.addWidget(python_path_label)
-        python_path_row.addWidget(python_path_edit)
+        python_path_row.addWidget(self.python_path_edit)
         python_path_row.addWidget(python_path_button)
 
         virtualenv_path_row = QHBoxLayout()
         self.layout.addLayout(virtualenv_path_row)
         virtualenv_path_label = QLabel('Virtualenv Path', self)
-        virtualenv_path_edit = QLineEdit(self)
-        virtualenv_path_edit.setText(self.settings.value('virtualenv_path'))
+        self.virtualenv_path_edit = QLineEdit(self)
+        self.virtualenv_path_edit.setText(self.settings.value('virtualenv_path'))
         virtualenv_path_button = QPushButton('Choose folder')
+        virtualenv_path_button.clicked.connect(self.choose_virtualenv_path)
         virtualenv_path_row.addWidget(virtualenv_path_label)
-        virtualenv_path_row.addWidget(virtualenv_path_edit)
+        virtualenv_path_row.addWidget(self.virtualenv_path_edit)
         virtualenv_path_row.addWidget(virtualenv_path_button)
 
         db_file_row = QHBoxLayout()
         self.layout.addLayout(db_file_row)
         db_file_label = QLabel('Database File', self)
-        db_file_edit = QLineEdit(self)
-        db_file_edit.setText(self.settings.get_db_file())
-        db_file_button = QPushButton('Choose file')
+        self.db_file_edit = QLineEdit(self)
+        self.db_file_edit.setText(self.settings.get_db_file())
+        # db_file_button = QPushButton('Choose file')
         db_file_row.addWidget(db_file_label)
-        db_file_row.addWidget(db_file_edit)
-        db_file_row.addWidget(db_file_button)
+        db_file_row.addWidget(self.db_file_edit)
+        # db_file_row.addWidget(db_file_button)
 
         version_file_row = QHBoxLayout()
         self.layout.addLayout(version_file_row)
         version_file_label = QLabel('Version File', self)
-        version_file_edit = QLineEdit(self)
-        version_file_edit.setText(self.settings.get_version_file())
+        self.version_file_edit = QLineEdit(self)
+        self.version_file_edit.setText(self.settings.get_version_file())
         # version_file_button = QPushButton('Choose file')
         version_file_row.addWidget(version_file_label)
-        version_file_row.addWidget(version_file_edit)
+        version_file_row.addWidget(self.version_file_edit)
         # version_file_row.addWidget(version_file_button)
 
         remote_url_row = QHBoxLayout()
         self.layout.addLayout(remote_url_row)
         remote_url_label = QLabel('Remote URL', self)
-        remote_url_edit = QLineEdit(self)
-        remote_url_edit.setText(self.settings.get_remote_url())
+        self.remote_url_edit = QLineEdit(self)
+        self.remote_url_edit.setText(self.settings.get_remote_url())
         remote_url_row.addWidget(remote_url_label)
-        remote_url_row.addWidget(remote_url_edit)
+        remote_url_row.addWidget(self.remote_url_edit)
 
         host_row = QHBoxLayout()
         self.layout.addLayout(host_row)
         host_label = QLabel('Host', self)
-        host_edit = QLineEdit(self)
-        host_edit.setText(self.settings.get_host())
+        self.host_edit = QLineEdit(self)
+        self.host_edit.setText(self.settings.get_host())
         host_row.addWidget(host_label)
-        host_row.addWidget(host_edit)
+        host_row.addWidget(self.host_edit)
 
         port_row = QHBoxLayout()
         self.layout.addLayout(port_row)
         port_label = QLabel('Port', self)
-        port_edit = QLineEdit(self)
-        port_edit.setText(str(self.settings.get_port()))
+        self.port_edit = QLineEdit(self)
+        self.port_edit.setText(str(self.settings.get_port()))
         port_row.addWidget(port_label)
-        port_row.addWidget(port_edit)
+        port_row.addWidget(self.port_edit)
 
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch(1)
@@ -480,8 +483,36 @@ class SettingsTab(Tab):
         reset_button.clicked.connect(self.reset)
         buttons_layout.addWidget(reset_button)
 
+    def choose_python_executable(self):
+        chosen = QFileDialog.getOpenFileName(self, 'Choose python executable file...', '')
+        if os.path.isfile(chosen[0]):
+            self.python_path_edit.setText(chosen[0])
+        elif not chosen[0]:
+            return
+        else:
+            self.choose_python_executable()
+
+    def choose_project_path(self):
+        pro_dir = str(
+            QFileDialog.getExistingDirectory(self, "Select project directory..."))
+        if os.path.exists(pro_dir) and os.path.isdir(pro_dir):
+            self.project_path_edit.setText(pro_dir)
+
+    def choose_virtualenv_path(self):
+        venv_dir = str(
+            QFileDialog.getExistingDirectory(self, "Select virtualenv directory..."))
+        if os.path.exists(venv_dir) and os.path.isdir(venv_dir):
+            self.virtualenv_path_edit.setText(venv_dir)
+
     def save_settings(self):
-        print('save')
+        self.settings.setValue('project_path', self.project_path_edit.text())
+        self.settings.setValue('python_path', self.python_path_edit.text())
+        self.settings.setValue('virtualenv_path', self.virtualenv_path_edit.text())
+        self.settings.setValue('db_file', self.db_file_edit.text())
+        self.settings.setValue('version_file', self.version_file_edit.text())
+        self.settings.setValue('remote_url', self.remote_url_edit.text())
+        self.settings.setValue('host', self.host_edit.text())
+        self.settings.setValue('port', self.port_edit.text())
         self.reset()
 
     def clear_layout(self, layout):
@@ -502,6 +533,7 @@ class SettingsTab(Tab):
     def reset(self):
         self.clear_layout(self.layout)
         self.add_content()
+
 
 class BackupTab(Tab):
     name = 'Backup/Restore'
