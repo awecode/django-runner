@@ -94,7 +94,7 @@ class Settings(QSettings):
     def get_title(self):
         return self.value('title') or 'Awecode'
 
-    def get_prohect_path(self):
+    def get_project_path(self):
         return self.value('project_path') or ''
 
     def get_host(self):
@@ -398,6 +398,7 @@ class SettingsTab(Tab):
         self.layout.addLayout(project_path_row)
         project_path_label = QLabel('Project Path', self)
         project_path_edit = QLineEdit(self)
+        project_path_edit.setText(self.settings.get_project_path())
         project_path_button = QPushButton('Choose folder')
         project_path_row.addWidget(project_path_label)
         project_path_row.addWidget(project_path_edit)
@@ -407,6 +408,7 @@ class SettingsTab(Tab):
         self.layout.addLayout(python_path_row)
         python_path_label = QLabel('Python Executable Path', self)
         python_path_edit = QLineEdit(self)
+        python_path_edit.setText(self.settings.get_python_path())
         python_path_button = QPushButton('Choose file')
         python_path_row.addWidget(python_path_label)
         python_path_row.addWidget(python_path_edit)
@@ -416,6 +418,7 @@ class SettingsTab(Tab):
         self.layout.addLayout(virtualenv_path_row)
         virtualenv_path_label = QLabel('Virtualenv Path', self)
         virtualenv_path_edit = QLineEdit(self)
+        virtualenv_path_edit.setText(self.settings.value('virtualenv_path'))
         virtualenv_path_button = QPushButton('Choose folder')
         virtualenv_path_row.addWidget(virtualenv_path_label)
         virtualenv_path_row.addWidget(virtualenv_path_edit)
@@ -425,6 +428,7 @@ class SettingsTab(Tab):
         self.layout.addLayout(db_file_row)
         db_file_label = QLabel('Database File', self)
         db_file_edit = QLineEdit(self)
+        db_file_edit.setText(self.settings.get_db_file())
         db_file_button = QPushButton('Choose file')
         db_file_row.addWidget(db_file_label)
         db_file_row.addWidget(db_file_edit)
@@ -434,15 +438,17 @@ class SettingsTab(Tab):
         self.layout.addLayout(version_file_row)
         version_file_label = QLabel('Version File', self)
         version_file_edit = QLineEdit(self)
-        version_file_button = QPushButton('Choose file')
+        version_file_edit.setText(self.settings.get_version_file())
+        # version_file_button = QPushButton('Choose file')
         version_file_row.addWidget(version_file_label)
         version_file_row.addWidget(version_file_edit)
-        version_file_row.addWidget(version_file_button)
+        # version_file_row.addWidget(version_file_button)
 
         remote_url_row = QHBoxLayout()
         self.layout.addLayout(remote_url_row)
         remote_url_label = QLabel('Remote URL', self)
         remote_url_edit = QLineEdit(self)
+        remote_url_edit.setText(self.settings.get_remote_url())
         remote_url_row.addWidget(remote_url_label)
         remote_url_row.addWidget(remote_url_edit)
 
@@ -450,6 +456,7 @@ class SettingsTab(Tab):
         self.layout.addLayout(host_row)
         host_label = QLabel('Host', self)
         host_edit = QLineEdit(self)
+        host_edit.setText(self.settings.get_host())
         host_row.addWidget(host_label)
         host_row.addWidget(host_edit)
 
@@ -457,6 +464,7 @@ class SettingsTab(Tab):
         self.layout.addLayout(port_row)
         port_label = QLabel('Port', self)
         port_edit = QLineEdit(self)
+        port_edit.setText(str(self.settings.get_port()))
         port_row.addWidget(port_label)
         port_row.addWidget(port_edit)
 
