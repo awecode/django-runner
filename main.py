@@ -325,7 +325,12 @@ class ServiceTab(Tab):
         cmdline = self.settings.get_cmdline()
         self.process.start(cmdline[0], cmdline[1:])
         app.aboutToQuit.connect(self.stop_process)
-        self.set_process_status('Started')
+        self.thread = QThread(app)
+        self.w = Worker(self.settings)
+        self.w.response[str].connect(self.port_response)
+        self.w.moveToThread(self.thread)
+        self.thread.started.connect(self.w.watch_port)
+        self.thread.start()
 
     @pyqtSlot(str)
     def port_response(self, str):
@@ -936,10 +941,10 @@ class DRBase(object):
 
     def __init__(self, *args, **kwargs):
         self.app_icon = self.set_icon()
+        self.browser = WebBrowser(self)
         self.settings = Settings()
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
-        self.browser = WebBrowser(self)
         self.tray = Tray(self)
 
     def quit(self):
