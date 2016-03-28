@@ -10,9 +10,10 @@ import time
 import shutil
 import urllib.request
 from io import BytesIO
+from subprocess import Popen, PIPE
 
 from PyQt5.QtCore import QCoreApplication, QSettings, Qt, pyqtSignal, QSize, QUrl, QThread, QProcess, QObject, pyqtSlot, \
-    QSharedMemory, QIODevice
+    QSharedMemory, QIODevice, QSizeF
 from PyQt5.QtGui import QIcon, QTextCursor, QPixmap
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
@@ -21,7 +22,7 @@ from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage, QWebInspector
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
     QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, \
-    QLineEdit, QProgressBar, QShortcut, QDialog
+    QLineEdit, QProgressBar, QShortcut, QDialog, QStyle
 import pickle
 
 from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, \
@@ -39,6 +40,7 @@ class Tray(QSystemTrayIcon):
         self.menu = self.create_menu()
         self.setToolTip(base.settings.get_title())
         app.aboutToQuit.connect(self.hide)
+        self.activated.connect(self.tray_clicked)
 
     def create_menu(self):
         menu = QMenu(self.cockpit)
@@ -62,6 +64,10 @@ class Tray(QSystemTrayIcon):
 
         self.setContextMenu(menu)
         self.show()
+
+    def tray_clicked(self, reason):
+        if not reason == self.Context:
+            self.base.browser_waiting = True
 
     def open_settings_file(self):
         open_file('settings.ini')
@@ -746,6 +752,9 @@ class WebView(QWebView):
 class WebBrowser(QMainWindow):
     printer = None
 
+    def i(self, ico):
+        return self.style().standardIcon(ico)
+
     def __init__(self, base):
         QMainWindow.__init__(self)
         self.base = base
@@ -754,14 +763,15 @@ class WebBrowser(QMainWindow):
 
         self.pbar = QProgressBar()
         self.pbar.setMaximumWidth(120)
-        self.wb = WebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished, loadStarted=self.load_started,
+        self.wb = WebView(loadProgress=self.pbar.setValue, loadFinished=self.load_finished,
+                          loadStarted=self.load_started,
                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
 
         self.tb = self.addToolBar('Main Toolbar')
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
             self.tb.addAction(self.wb.pageAction(a))
-        home_action = QAction(QIcon.fromTheme('go-home'), 'Home', self)
+        home_action = QAction(self.i(QStyle.SP_DirHomeIcon), 'Home', self)
         home_action.triggered.connect(self.load)
         self.tb.addAction(home_action)
         self.tb.addSeparator()
@@ -777,7 +787,8 @@ class WebBrowser(QMainWindow):
         self.tb.addAction(print_pdf_action)
         self.tb.addSeparator()
 
-        self.search = QLineEdit(returnPressed=lambda: self.wb.findText(self.search.text(), QWebPage.FindWrapsAroundDocument))
+        self.search = QLineEdit(
+            returnPressed=lambda: self.wb.findText(self.search.text(), QWebPage.FindWrapsAroundDocument))
         self.search.setPlaceholderText('Search')
         QShortcut("Ctrl+F", self, activated=self.toggle_search_focus)
         QShortcut("Esc", self, activated=self.remove_search_focus)
@@ -898,7 +909,8 @@ class WebBrowser(QMainWindow):
             import win32con
 
             SetWindowPos(self.winId(),
-                         win32con.HWND_TOPMOST,  # = always on top. only reliable way to bring it to the front on windows
+                         win32con.HWND_TOPMOST,
+                         # = always on top. only reliable way to bring it to the front on windows
                          0, 0, 0, 0,
                          win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
             SetWindowPos(self.winId(),
@@ -919,9 +931,9 @@ class WebBrowser(QMainWindow):
     def change_title(self):
         self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
 
-        # def closeEvent(self, event):
-        #     event.ignore()
-        #     # self.hide()
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
 
 
 class DRBase(object):
@@ -1021,12 +1033,14 @@ class Cockpit(QMainWindow):
         self.center()
         self.show()
 
-    def quit(self, event):
+    def quit(self):
         reply = QMessageBox.question(self, 'Exit', "Are you sure you want to exit and stop the service?",
                                      QMessageBox.Yes | QMessageBox.No,
                                      QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            return self.base.quit()
+        # print(reply == QMessageBox.Yes)
+        #
+        # if reply == QMessageBox.Yes:
+        #     return self.base.quit()
 
     def center(self):
         qr = self.frameGeometry()
@@ -1041,9 +1055,9 @@ class Cockpit(QMainWindow):
         if e.key() == Qt.Key_Escape:
             self.close()
 
-            # def closeEvent(self, event):
-            #     event.ignore()
-            #     self.hide()
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
 
 
 class Application(QApplication):
@@ -1154,9 +1168,8 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
     app.new_connection.connect(base.browser.show_window)
-    app.setQuitOnLastWindowClosed(False)
-    # if app.is_running:
-    if False:
+    if app.is_running:
+        # if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
