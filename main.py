@@ -315,8 +315,7 @@ class ServiceTab(Tab):
         if self.process_status == 'Started':
             self.start_button.setEnabled(False)
             if self.base.browser_waiting:
-                # TODO
-                # self.base.browser.show_window()
+                self.base.browser.show_window()
                 self.base.browser_waiting = False
         else:
             self.start_button.setEnabled(True)
@@ -1313,16 +1312,14 @@ if __name__ == '__main__':
     base = DRBase()
     app.new_connection.connect(base.browser.show_window)
     app.setQuitOnLastWindowClosed(False)
-    # if app.is_running:
-    if False:
+    if app.is_running:
+    # if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
         if len(sys.argv) > 1 and sys.argv[1] == 'tray':
             base.browser_waiting = False
         app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')))
-        # TODO
-        base.cockpit.show_window()
         ret = app.exec_()
         app.deleteLater()
         sys.exit(ret)
