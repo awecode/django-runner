@@ -706,7 +706,7 @@ class UpdatesTab(Tab):
     def version_response(self, str):
         self.remote_version = str.strip()
         self.remote_version_line.setText(self.remote_version)
-        self.thread.terminate()
+        self.thread.quit()
 
         if self.local_version == self.remote_version:
             self.update_btn.setEnabled(False)
@@ -735,6 +735,7 @@ class UpdatesTab(Tab):
             self.update_btn.setEnabled(True)
 
     def on_response_download(self, zip_content):
+        self.thread.quit()
         self.add_success('Downloading completed.')
 
         tmp_dir = tempfile.gettempdir()
@@ -777,6 +778,7 @@ class UpdatesTab(Tab):
             self.add_success('Update complete!')
 
     def download_error(self, st):
+        self.thread.quit()
         self.add_error('Error downloading update file.')
         self.add_error(st)
 
