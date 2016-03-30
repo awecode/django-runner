@@ -28,7 +28,7 @@ from utils import debug_trace, move_files, open_file, which, call_command, clean
     confirm_process_on_port, \
     process_on_port
 
-BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+BASE_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
 class Tray(QSystemTrayIcon):
@@ -1116,6 +1116,8 @@ class Cockpit(QMainWindow):
         self.status_bar = self.create_status_bar()
         self.tabs = self.create_tabs()
         QShortcut("Ctrl+Q", self, activated=self.quit)
+        self.setWindowTitle(self.base.settings.get_title())
+        self.setWindowIcon(self.base.app_icon)
         # self.show_window()
 
     def create_widget(self):
@@ -1175,8 +1177,6 @@ class Cockpit(QMainWindow):
         return bar
 
     def show_window(self):
-        self.setWindowTitle(self.base.settings.get_title())
-        self.setWindowIcon(self.base.app_icon)
         # self.resize(1000, 15000)
         # self.showMaximized()
         self.center()
@@ -1299,7 +1299,7 @@ class Application(QApplication):
 
             if self.mutex:
                 CloseHandle(self.mutex)
-        except ImportError:
+        except (ImportError, TypeError):
             pass
 
     def notify(self, obj, evt):
