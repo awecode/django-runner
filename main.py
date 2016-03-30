@@ -948,6 +948,7 @@ class WebBrowser(QMainWindow):
         QShortcut("Ctrl+Shift+P", self, activated=self.print_preview)
         QShortcut("Ctrl+Shift+E", self, activated=self.print_pdf)
         QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
+        QShortcut("Ctrl+Shift+Q", self, activated=self.base.quit)
 
         self.wb.page.console_message.connect(self.console_message)
         self.wb.page.printRequested.connect(self.print_dialog)
@@ -1005,9 +1006,12 @@ class WebBrowser(QMainWindow):
         self.pbar.show()
         self.pbar_action = self.tb.addWidget(self.pbar)
 
-    def load_finished(self):
+    def load_finished(self, result):
         self.pbar.hide()
         self.tb.removeAction(self.pbar_action)
+        if not result:
+            self.wb.page.mainFrame().setHtml("<html><head><title>Error loading page</title></head>\
+     <body><h1>Error loading " + self.base.settings.get_local_url() + "</h2></body> </html>")
 
     def toggle_search(self):
         if self.search.isVisible():
@@ -1313,7 +1317,7 @@ if __name__ == '__main__':
     app.new_connection.connect(base.browser.show_window)
     app.setQuitOnLastWindowClosed(False)
     if app.is_running:
-    # if False:
+        # if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
