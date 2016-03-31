@@ -8,7 +8,7 @@ import shutil
 from psutil import process_iter
 from psutil import AccessDenied
 from signal import SIGTERM  # or SIGKILL
-from pdb import set_trace
+from ipdb import set_trace
 
 
 def debug_trace():

@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+from PyQt5 import QtNetwork
 import getpass
 import os
 import signal
 import sys
 import zipfile
 import tempfile
+import json
 import time
 import shutil
 import urllib.request
@@ -89,6 +91,11 @@ class Tray(QSystemTrayIcon):
 class Settings(QSettings):
     def __init__(self):
         super(Settings, self).__init__(os.path.join(BASE_PATH, 'settings.ini'), QSettings.IniFormat)
+
+    def get(self, key, default=None):
+        "Get the object stored under 'key' in persistent storage, or the default value"
+        v = self.value(key)
+        return json.loads(str(v)) if v else default
 
     def get_python_path(self):
         if self.value('python_path') or self.value('virtualenv_path'):
@@ -193,6 +200,18 @@ class Settings(QSettings):
     def get_cmdline(self):
         cmdline = [self.get_python_path(), 'manage.py', 'runserver', '--noreload', self.get_addr()]
         return cmdline
+
+    def set_cookies(self, data):
+        self.beginGroup('History')
+        self.setValue('cookiejar', json.dumps(data))
+        self.endGroup()
+        self.sync()
+
+    def get_cookies(self):
+        self.beginGroup('History')
+        cookies = self.get('cookiejar') or []
+        self.endGroup()
+        return cookies
 
 
 class Tab(QWidget):
@@ -881,8 +900,10 @@ class WebPage(QWebPage):
 class WebView(QWebView):
     def __init__(self, *args, **kwargs):
         super(WebView, self).__init__(*args, **kwargs)
-        self.page = WebPage()
-        self.setPage(self.page)
+        self._page = WebPage()
+        self._page.setForwardUnsupportedContent(True)
+
+        self.setPage(self._page)
 
     def contextMenuEvent(self, event):
         pass
@@ -906,6 +927,15 @@ class WebBrowser(QMainWindow):
                           loadStarted=self.load_started,
                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
+        self.wb.page().unsupportedContent.connect(self.download)
+        self.wb.page().downloadRequested.connect(self.download)
+
+        self.cookies = QtNetwork.QNetworkCookieJar(app)
+        self.wb.page().networkAccessManager().setCookieJar(self.cookies)
+        self.cookies.setAllCookies([QtNetwork.QNetworkCookie.parseCookies(c)[0] for c in self.base.settings.get_cookies()])
+
+
+        # self.manager.finished.connect(self.finished)
 
         self.tb = self.addToolBar('Main Toolbar')
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
@@ -952,10 +982,33 @@ class WebBrowser(QMainWindow):
         QShortcut("Ctrl+Shift+J", self, activated=self.show_dev_tools)
         QShortcut("Ctrl+Shift+Q", self, activated=self.base.quit)
 
-        self.wb.page.console_message.connect(self.console_message)
-        self.wb.page.printRequested.connect(self.print_dialog)
+        self.wb.page().console_message.connect(self.console_message)
+        self.wb.page().printRequested.connect(self.print_dialog)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
         self.init_printer()
+
+    def download(self, reply):
+        self.request = reply.request()
+        # self.request.setUrl(reply.url())
+        # self.reply = self.manager.get(self.request)
+        debug_trace()
+        print(reply)
+
+    def finished(self):
+        path = os.path.expanduser(
+            os.path.join('~',
+                         str(self.reply.url().path()).split('/')[-1]))
+        if self.reply.hasRawHeader('Content-Disposition'):
+            cnt_dis = self.reply.rawHeader('Content-Disposition').data()
+            if cnt_dis.startswith('attachment'):
+                path = cnt_dis.split('=')[1]
+
+        destination = QFileDialog.getSaveFileName(self, "Save", path)
+        if destination:
+            f = open(destination[0], 'wb')
+            f.write(self.reply.readAll())
+            f.flush()
+            f.close()
 
     def init_printer(self):
         if not self.printer:
@@ -1012,7 +1065,7 @@ class WebBrowser(QMainWindow):
         self.pbar.hide()
         self.tb.removeAction(self.pbar_action)
         if not result:
-            self.wb.page.mainFrame().setHtml("<html><head><title>Error loading page</title></head>\
+            self.wb.page().mainFrame().setHtml("<html><head><title>Error loading page</title></head>\
      <body><h1>Error loading " + self.base.settings.get_local_url() + "</h2></body> </html>")
 
     def toggle_search(self):
@@ -1078,14 +1131,20 @@ class WebBrowser(QMainWindow):
         #     event.ignore()
         #     self.hide()
 
+    def closeEvent(self, ev):
+        print(self.cookies.allCookies())
+        self.base.settings.set_cookies([str(c.toRawForm()) for c in self.cookies.allCookies()])
+        return QMainWindow.closeEvent(self, ev)
+
 
 class DRBase(object):
     browser_waiting = True
 
     def __init__(self, *args, **kwargs):
         self.app_icon = self.set_icon()
-        self.browser = WebBrowser(self)
         self.settings = Settings()
+
+        self.browser = WebBrowser(self)
         self.status_text = 'Loading ...'
         self.cockpit = Cockpit(self)
         self.tray = Tray(self)
@@ -1321,6 +1380,7 @@ class Application(QApplication):
 
 
 if __name__ == '__main__':
+    manager = QtNetwork.QNetworkAccessManager()
     app = Application(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
