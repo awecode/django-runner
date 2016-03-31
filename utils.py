@@ -8,7 +8,7 @@ import shutil
 from psutil import process_iter
 from psutil import AccessDenied
 from signal import SIGTERM  # or SIGKILL
-from ipdb import set_trace
+from pdb import set_trace
 
 
 def debug_trace():
@@ -113,10 +113,11 @@ def confirm_process_on_port(port, cmdline):
             for conns in proc.connections(kind='inet'):
                 if conns.laddr[1] == int(port):
                     proc_cmdline = proc.cmdline()
-                    proc_exe_path = os.path.normpath(proc_cmdline.pop(0))
-                    exe_path = os.path.normpath(cmdline.pop(0))
-                    if proc_cmdline == cmdline and proc_exe_path == exe_path:
-                        return True
+                    if proc_cmdline and cmdline:
+                        proc_exe_path = os.path.normpath(proc_cmdline.pop(0))
+                        exe_path = os.path.normpath(cmdline.pop(0))
+                        if proc_cmdline == cmdline and proc_exe_path == exe_path:
+                            return True
                     continue
         except AccessDenied:
             continue
