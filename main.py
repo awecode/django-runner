@@ -205,7 +205,6 @@ class Settings(QSettings):
         self.beginGroup('History')
         self.setValue('cookiejar', json.dumps(data))
         self.endGroup()
-        self.sync()
 
     def get_cookies(self):
         self.beginGroup('History')
@@ -928,7 +927,7 @@ class WebBrowser(QMainWindow):
                           titleChanged=self.change_title)
         self.setCentralWidget(self.wb)
         self.wb.page().unsupportedContent.connect(self.download)
-        self.wb.page().downloadRequested.connect(self.download)
+        # self.wb.page().downloadRequested.connect(lambda req: self.download(self.wb.page().networkAccessManager().get(req)))
 
         self.cookies = QtNetwork.QNetworkCookieJar(app)
         self.wb.page().networkAccessManager().setCookieJar(self.cookies)
@@ -983,32 +982,18 @@ class WebBrowser(QMainWindow):
         self.wb.page().printRequested.connect(self.print_dialog)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
         self.init_printer()
-        
-    
+
     def download(self, reply):
-        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(to_pycookiejar(self.cookies)))
-        try:
-            with opener.open(reply.url().toString()) as response:
-                print(response)
-        except Exception as e:
-            print(str(e))
-        print(reply)
-
-    def finished(self):
-        path = os.path.expanduser(
-            os.path.join('~',
-                         str(self.reply.url().path()).split('/')[-1]))
-        if self.reply.hasRawHeader('Content-Disposition'):
-            cnt_dis = self.reply.rawHeader('Content-Disposition').data()
-            if cnt_dis.startswith('attachment'):
-                path = cnt_dis.split('=')[1]
-
-        destination = QFileDialog.getSaveFileName(self, "Save", path)
-        if destination:
-            f = open(destination[0], 'wb')
-            f.write(self.reply.readAll())
-            f.flush()
-            f.close()
+        destination = QFileDialog.getSaveFileName(self, "Save File",
+                                                  os.path.expanduser(os.path.join('~', str(reply.url().path()).split('/')[-1])))
+        if destination[0]:
+            opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(to_pycookiejar(self.cookies)))
+            try:
+                with opener.open(reply.url().toString()) as response:
+                    with open(destination[0], 'wb') as f:
+                        f.write(response.read())
+            except Exception as e:
+                QMessageBox.critical(self, 'Saving Failed!', str(e), QMessageBox.Ok)
 
     def init_printer(self):
         if not self.printer:
