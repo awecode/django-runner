@@ -8,6 +8,7 @@ import shutil
 from psutil import process_iter
 from psutil import AccessDenied
 from signal import SIGTERM  # or SIGKILL
+from http.cookiejar import CookieJar, Cookie
 from ipdb import set_trace
 
 
@@ -122,3 +123,48 @@ def confirm_process_on_port(port, cmdline):
         except AccessDenied:
             continue
     return False
+
+def to_py_cookie(QtCookie):
+        port = None
+        port_specified = False
+        secure = QtCookie.isSecure()
+        name = QtCookie.name().data().decode()
+        value = QtCookie.value().data().decode()
+        v = QtCookie.path()
+        path_specified = bool(v != "")
+        path = v if path_specified else None
+        v = QtCookie.domain()
+        domain_specified = bool(v != "")
+        domain = v
+        if domain_specified:
+            domain_initial_dot = v.startswith('.')
+        else:
+            domain_initial_dot = None
+        v = int(QtCookie.expirationDate().toTime_t())
+        expires = 2147483647 if v > 2147483647 else v
+        rest = {"HttpOnly": QtCookie.isHttpOnly()}
+        discard = False
+        return Cookie(
+            0,
+            name,
+            value,
+            port,
+            port_specified,
+            domain,
+            domain_specified,
+            domain_initial_dot,
+            path,
+            path_specified,
+            secure,
+            expires,
+            discard,
+            None,
+            None,
+            rest,
+        )
+
+def to_pycookiejar(QtCookiejar):
+        cj = CookieJar()
+        for c in QtCookiejar.allCookies():
+            cj.set_cookie(to_py_cookie(c))
+        return cj

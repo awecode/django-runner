@@ -28,7 +28,7 @@ import pickle
 
 from utils import debug_trace, move_files, open_file, which, call_command, clean_pyc, free_port, \
     confirm_process_on_port, \
-    process_on_port
+    process_on_port, to_pycookiejar
 
 BASE_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -934,9 +934,6 @@ class WebBrowser(QMainWindow):
         self.wb.page().networkAccessManager().setCookieJar(self.cookies)
         self.cookies.setAllCookies(QtNetwork.QNetworkCookie.parseCookies(self.base.settings.get_cookies()))
 
-
-        # self.manager.finished.connect(self.finished)
-
         self.tb = self.addToolBar('Main Toolbar')
         for a in (QWebPage.Back, QWebPage.Forward, QWebPage.Reload):
             self.tb.addAction(self.wb.pageAction(a))
@@ -986,12 +983,15 @@ class WebBrowser(QMainWindow):
         self.wb.page().printRequested.connect(self.print_dialog)
         self.wb.settings().setAttribute(QWebSettings.PluginsEnabled, True)
         self.init_printer()
-
+        
+    
     def download(self, reply):
-        self.request = reply.request()
-        # self.request.setUrl(reply.url())
-        # self.reply = self.manager.get(self.request)
-        debug_trace()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(to_pycookiejar(self.cookies)))
+        try:
+            with opener.open(reply.url().toString()) as response:
+                print(response)
+        except Exception as e:
+            print(str(e))
         print(reply)
 
     def finished(self):
