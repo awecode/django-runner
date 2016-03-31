@@ -89,8 +89,15 @@ class Tray(QSystemTrayIcon):
 
 
 class Settings(QSettings):
-    def __init__(self):
-        super(Settings, self).__init__(os.path.join(BASE_PATH, 'settings.ini'), QSettings.IniFormat)
+    ok = True
+
+    def __init__(self, base):
+        self.base = base
+        self.path = os.path.join(BASE_PATH, 'settings.ini')
+        super(Settings, self).__init__(self.path, QSettings.IniFormat)
+        if not os.path.isfile(self.path):
+            QMessageBox.critical(None, 'Settings', 'settings.ini file does not exist!', QMessageBox.Ok)
+            self.ok = False
 
     def get(self, key, default=None):
         "Get the object stored under 'key' in persistent storage, or the default value"
@@ -208,9 +215,12 @@ class Settings(QSettings):
 
     def get_cookies(self):
         self.beginGroup('History')
-        cookies = self.get('cookiejar')[0] or ''
+        cookies = self.get('cookiejar')
         self.endGroup()
-        return bytearray(cookies, encoding='utf=8')
+        if cookies:
+            return bytearray(cookies[0], encoding='utf=8')
+        else:
+            return bytearray('', encoding='utf=8')
 
 
 class Tab(QWidget):
@@ -324,22 +334,28 @@ class Worker(QObject):
 class ServiceTab(Tab):
     manual_stop = False
     service_status = pyqtSignal(str)
+    fail_count = 0
 
     def set_process_status(self, st):
         self.process_status = st
         self.status_text.setText(st)
 
         if self.process_status == 'Started':
+            self.fail_count = 0
             self.start_button.setEnabled(False)
+            self.stop_button.setEnabled(True)
             if self.base.browser_waiting:
                 self.base.browser.show_window()
                 self.base.browser_waiting = False
         else:
+            if not self.manual_stop:
+                self.fail_count += 1
+                if self.fail_count == 5:
+                    QMessageBox.critical(None, 'Service Failed!', 'Starting service failed.')
+                    self.base.tray.show_tab(0)
+                    self.manual_stop = True
             self.start_button.setEnabled(True)
-        if self.process_status == 'Stopped':
             self.stop_button.setEnabled(False)
-        else:
-            self.stop_button.setEnabled(True)
         self.service_status.emit(str(st))
 
     # def restart_process(self):
@@ -411,7 +427,7 @@ class ServiceTab(Tab):
             else:
                 self.console.add_error(error)
         self.set_process_status('Stopped')
-        self.manual_stop = True
+        # self.manual_stop = True
 
     def on_error(self):
         if not self.manual_stop:
@@ -420,7 +436,7 @@ class ServiceTab(Tab):
                 error += str(self.process.error())
             self.console.add_error(error)
         self.set_process_status('Stopped')
-        self.manual_stop = True
+        # self.manual_stop = True
 
 
 class SettingsTab(Tab):
@@ -1128,13 +1144,15 @@ class DRBase(object):
 
     def __init__(self, *args, **kwargs):
         self.app_icon = self.set_icon()
-        self.settings = Settings()
-
-        self.browser = WebBrowser(self)
-        self.status_text = 'Loading ...'
-        self.cockpit = Cockpit(self)
-        self.tray = Tray(self)
-        self.cockpit.service_status.connect(self.tray.service_status)
+        self.settings = Settings(self)
+        if self.settings.ok:
+            self.browser = WebBrowser(self)
+            self.status_text = 'Loading ...'
+            self.cockpit = Cockpit(self)
+            self.tray = Tray(self)
+            self.cockpit.service_status.connect(self.tray.service_status)
+        else:
+            return sys.exit()
 
     def quit(self):
         return QCoreApplication.instance().quit()
