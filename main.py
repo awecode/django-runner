@@ -90,7 +90,7 @@ class Tray(QSystemTrayIcon):
 
 
 class Settings(QSettings):
-    ok = True
+    exists = True
 
     def __init__(self, base):
         self.base = base
@@ -98,7 +98,18 @@ class Settings(QSettings):
         super(Settings, self).__init__(self.path, QSettings.IniFormat)
         if not os.path.isfile(self.path):
             QMessageBox.critical(None, 'Settings', 'settings.ini file does not exist!', QMessageBox.Ok)
-            self.ok = False
+            self.exists = False
+
+    def is_valid(self):
+        return self.get_project_path() and self.get_python_path()
+
+    def warn(self):
+        if not self.get_project_path():
+            QMessageBox.critical(None, 'Settings', 'Please fix project path and start service.', QMessageBox.Ok)
+            self.base.tray.show_tab(1)
+        if not self.get_python_path():
+            QMessageBox.critical(None, 'Settings', 'Please fix python path and start service.', QMessageBox.Ok)
+            self.base.tray.show_tab(1)
 
     def get(self, key, default=None):
         "Get the object stored under 'key' in persistent storage, or the default value"
@@ -112,8 +123,8 @@ class Settings(QSettings):
             python_path = which('python')
             if python_path:
                 return python_path
-            else:
-                raise NotImplementedError('Set python or virtualenv path in settings')
+                # else:
+                #     raise NotImplementedError('Set python or virtualenv path in settings')
 
     def get_title(self):
         return self.value('title') or 'Awecode'
@@ -352,8 +363,12 @@ class ServiceTab(Tab):
             if not self.manual_stop:
                 self.fail_count += 1
                 if self.fail_count == 5:
-                    QMessageBox.critical(None, 'Service Failed!', 'Starting service failed.')
-                    self.base.tray.show_tab(0)
+                    if self.base.settings.is_valid():
+                        QMessageBox.critical(None, 'Service Failed!',
+                                             'Starting service failed. Please fix settings and restart application.')
+                        self.base.tray.show_tab(0)
+                    else:
+                        self.base.settings.warn()
                     self.manual_stop = True
             self.start_button.setEnabled(True)
             self.stop_button.setEnabled(False)
@@ -1146,7 +1161,7 @@ class DRBase(object):
     def __init__(self, *args, **kwargs):
         self.app_icon = self.set_icon()
         self.settings = Settings(self)
-        if self.settings.ok:
+        if self.settings.exists:
             self.browser = WebBrowser(self)
             self.status_text = 'Loading ...'
             self.cockpit = Cockpit(self)
