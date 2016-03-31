@@ -101,15 +101,28 @@ class Settings(QSettings):
             self.exists = False
 
     def is_valid(self):
-        return self.get_project_path() and self.get_python_path()
+        return self.get_project_path() and os.path.isdir(self.get_project_path()) and self.get_python_path() and os.path.isfile(
+            self.get_python_path())
 
     def warn(self):
         if not self.get_project_path():
             QMessageBox.critical(None, 'Settings', 'Please fix project path and start service.', QMessageBox.Ok)
             self.base.tray.show_tab(1)
+            self.base.cockpit.setting_tab.project_path_edit.setFocus(True)
+        if not os.path.isdir(self.get_project_path()):
+            QMessageBox.critical(None, 'Settings', 'Project Path isn\'t a valid directory. Please fix and start service',
+                                 QMessageBox.Ok)
+            self.base.tray.show_tab(1)
+            self.base.cockpit.setting_tab.project_path_edit.setFocus(True)
         if not self.get_python_path():
             QMessageBox.critical(None, 'Settings', 'Please fix python path and start service.', QMessageBox.Ok)
             self.base.tray.show_tab(1)
+            self.base.cockpit.setting_tab.python_path_edit.setFocus(True)
+        if not os.path.isfile(self.get_python_path()):
+            QMessageBox.critical(None, 'Settings', 'Python Path isn\'t a valid file. Please fix and start service',
+                                 QMessageBox.Ok)
+            self.base.tray.show_tab(1)
+            self.base.cockpit.setting_tab.python_path_edit.setFocus(True)
 
     def get(self, key, default=None):
         "Get the object stored under 'key' in persistent storage, or the default value"
