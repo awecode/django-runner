@@ -22,7 +22,7 @@ from PyQt5.QtPrintSupport import QPrinterInfo
 from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage, QWebInspector
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QDesktopWidget, QMainWindow, QAction, QVBoxLayout, \
-    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, QFormLayout, \
+    QFileDialog, QSystemTrayIcon, QMenu, QTabWidget, QLabel, QTextEdit, QHBoxLayout, QPushButton, \
     QLineEdit, QProgressBar, QShortcut, QDialog, QStyle, QWidgetItem, QSpacerItem
 import pickle
 
@@ -209,9 +209,9 @@ class Settings(QSettings):
 
     def get_cookies(self):
         self.beginGroup('History')
-        cookies = self.get('cookiejar') or []
+        cookies = self.get('cookiejar')[0] or ''
         self.endGroup()
-        return cookies
+        return bytearray(cookies, encoding='utf=8')
 
 
 class Tab(QWidget):
@@ -932,7 +932,7 @@ class WebBrowser(QMainWindow):
 
         self.cookies = QtNetwork.QNetworkCookieJar(app)
         self.wb.page().networkAccessManager().setCookieJar(self.cookies)
-        self.cookies.setAllCookies([QtNetwork.QNetworkCookie.parseCookies(c)[0] for c in self.base.settings.get_cookies()])
+        self.cookies.setAllCookies(QtNetwork.QNetworkCookie.parseCookies(self.base.settings.get_cookies()))
 
 
         # self.manager.finished.connect(self.finished)
@@ -1064,6 +1064,7 @@ class WebBrowser(QMainWindow):
     def load_finished(self, result):
         self.pbar.hide()
         self.tb.removeAction(self.pbar_action)
+        self.save_cookies()
         if not result:
             self.wb.page().mainFrame().setHtml("<html><head><title>Error loading page</title></head>\
      <body><h1>Error loading " + self.base.settings.get_local_url() + "</h2></body> </html>")
@@ -1131,10 +1132,8 @@ class WebBrowser(QMainWindow):
         #     event.ignore()
         #     self.hide()
 
-    def closeEvent(self, ev):
-        print(self.cookies.allCookies())
-        self.base.settings.set_cookies([str(c.toRawForm()) for c in self.cookies.allCookies()])
-        return QMainWindow.closeEvent(self, ev)
+    def save_cookies(self):
+        self.base.settings.set_cookies([str(c.toRawForm(), encoding='utf-8') + "\n" for c in self.cookies.allCookies()])
 
 
 class DRBase(object):
