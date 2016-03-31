@@ -55,8 +55,9 @@ class Tray(QSystemTrayIcon):
         settings.triggered.connect(lambda: self.show_tab(1))
         backup_restore = menu.addAction(QIcon.fromTheme('media-seek-backward'), '&Backup/Restore')
         backup_restore.triggered.connect(lambda: self.show_tab(2))
-        check_update = menu.addAction(QIcon.fromTheme('system-software-update'), 'Check for &Updates')
-        check_update.triggered.connect(lambda: self.show_tab(3))
+        if self.base.settings.get_remote_url():
+            check_update = menu.addAction(QIcon.fromTheme('system-software-update'), 'Check for &Updates')
+            check_update.triggered.connect(lambda: self.show_tab(3))
         tools = menu.addAction(QIcon.fromTheme('emblem-system'), 'Tools')
         tools.triggered.connect(lambda: self.show_tab(4))
         console = menu.addAction(QIcon.fromTheme('emblem-system'), 'Console')
@@ -1206,7 +1207,8 @@ class Cockpit(QMainWindow):
         self.service_tab.service_status.connect(self.set_status)
         self.setting_tab = SettingsTab(tab_widget=tab_widget)
         self.backup_tab = BackupTab(tab_widget=tab_widget)
-        self.updates_tab = UpdatesTab(tab_widget=tab_widget)
+        if self.base.settings.get_remote_url():
+            self.updates_tab = UpdatesTab(tab_widget=tab_widget)
         self.tools_tab = ToolsTab(tab_widget=tab_widget)
         self.console_tab = ConsoleTab(tab_widget=tab_widget)
         self.about_tab = AboutTab(tab_widget=tab_widget)
