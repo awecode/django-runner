@@ -70,15 +70,14 @@ class Tray(QSystemTrayIcon):
 
     def tray_clicked(self, reason):
         if not reason == self.Context:
-            self.base.browser_waiting = True
+            self.base.browser_or_cockpit()
 
     def open_settings_file(self):
         open_file('settings.ini')
 
     def show_tab(self, tab_index):
         self.base.cockpit.tabs.setCurrentIndex(tab_index)
-        self.base.cockpit.show()
-        self.base.cockpit.activateWindow()
+        self.base.cockpit.show_window()
 
     def service_status(self, st):
         if st == 'Started':
@@ -1105,6 +1104,12 @@ class DRBase(object):
         app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16x16.png')))
         return app_icon
 
+    def browser_or_cockpit(self):
+        if self.cockpit.service_tab.process_status == 'Started':
+            self.browser.show_window()
+        else:
+            self.tray.show_tab(0)
+
 
 class Cockpit(QMainWindow):
     service_status = pyqtSignal(str)
@@ -1184,6 +1189,8 @@ class Cockpit(QMainWindow):
         # self.showMaximized()
         self.center()
         self.show()
+        self.activateWindow()
+        self.raise_()
 
     def quit(self):
         reply = QMessageBox.question(self, 'Exit', "Are you sure you want to exit and stop the service?",
@@ -1317,10 +1324,10 @@ if __name__ == '__main__':
     app = Application(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
-    app.new_connection.connect(base.browser.show_window)
+    app.new_connection.connect(base.browser_or_cockpit)
     app.setQuitOnLastWindowClosed(False)
-    if app.is_running:
-        # if False:
+    # if app.is_running:
+    if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
