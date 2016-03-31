@@ -993,7 +993,8 @@ class WebBrowser(QMainWindow):
                     with open(destination[0], 'wb') as f:
                         f.write(response.read())
             except Exception as e:
-                QMessageBox.critical(self, 'Saving Failed!', str(e), QMessageBox.Ok)
+                QMessageBox.critical(None, 'Saving Failed!', str(e), QMessageBox.Ok)
+        self.load(self.wb.url().toString())
 
     def init_printer(self):
         if not self.printer:
@@ -1107,8 +1108,9 @@ class WebBrowser(QMainWindow):
         self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
         self.activateWindow()
 
-    def load(self):
-        self.wb.load(QUrl(self.base.settings.get_local_url()))
+    def load(self, url=None):
+        url = url or self.base.settings.get_local_url()
+        self.wb.load(QUrl(url))
 
     def change_title(self):
         self.setWindowTitle(self.wb.title() + ' | ' + self.base.settings.get_title())
