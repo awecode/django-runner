@@ -955,6 +955,7 @@ class WebView(QWebView):
 
 class WebBrowser(QMainWindow):
     printer = None
+    downloading = False
 
     def i(self, ico):
         return self.style().standardIcon(ico)
@@ -1029,6 +1030,7 @@ class WebBrowser(QMainWindow):
         self.init_printer()
 
     def download(self, reply):
+        self.downloading = True
         destination = QFileDialog.getSaveFileName(self, "Save File",
                                                   os.path.expanduser(os.path.join('~', str(reply.url().path()).split('/')[-1])))
         if destination[0]:
@@ -1039,7 +1041,6 @@ class WebBrowser(QMainWindow):
                         f.write(response.read())
             except Exception as e:
                 QMessageBox.critical(None, 'Saving Failed!', str(e), QMessageBox.Ok)
-        self.load(self.wb.url().toString())
 
     def init_printer(self):
         if not self.printer:
@@ -1096,9 +1097,10 @@ class WebBrowser(QMainWindow):
         self.pbar.hide()
         self.tb.removeAction(self.pbar_action)
         self.save_cookies()
-        if not result:
+        if not self.downloading and not result:
             self.wb.page().mainFrame().setHtml("<html><head><title>Error loading page</title></head>\
-     <body><h1>Error loading " + self.base.settings.get_local_url() + "</h2></body> </html>")
+         <body><h1>Error loading " + self.base.settings.get_local_url() + "</h2></body> </html>")
+        self.downloading = False
 
     def toggle_search(self):
         if self.search.isVisible():
