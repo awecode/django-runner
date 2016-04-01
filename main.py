@@ -230,7 +230,7 @@ class Settings(QSettings):
         return url
 
     def get_cmdline(self):
-        cmdline = [self.get_python_path(), 'manage.py', 'runserver', '--noreload', self.get_addr()]
+        cmdline = [self.get_python_path(), '-i', 'manage.py', 'runserver', '--noreload', self.get_addr()]
         return cmdline
 
     def set_cookies(self, data):
