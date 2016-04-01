@@ -1398,25 +1398,24 @@ class Application(QApplication):
         except ImportError:
             return False
 
-    def __del__(self):
-        try:
-            from win32api import CloseHandle
-
-            if self.mutex:
-                CloseHandle(self.mutex)
-        except (ImportError, TypeError):
-            pass
-
-    def notify(self, obj, evt):
-        try:
-            # Call base class notify.
-            return QApplication.notify(self, obj, evt)
-        except Exception:
-            print("Unexpected error:", )
+            # def __del__(self):
+            #     try:
+            #         from win32api import CloseHandle
+            # 
+            #         if self.mutex:
+            #             CloseHandle(self.mutex)
+            #     except (ImportError, TypeError):
+            #         pass
+            # 
+            # def notify(self, obj, evt):
+            #     try:
+            #         # Call base class notify.
+            #         return QApplication.notify(self, obj, evt)
+            #     except Exception:
+            #         print("Unexpected error:", )
 
 
 if __name__ == '__main__':
-    manager = QtNetwork.QNetworkAccessManager()
     app = Application(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     base = DRBase()
