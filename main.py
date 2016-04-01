@@ -1421,8 +1421,8 @@ if __name__ == '__main__':
     base = DRBase()
     app.new_connection.connect(base.browser_or_cockpit)
     app.setQuitOnLastWindowClosed(False)
-    # if app.is_running:
-    if False:
+    if app.is_running:
+    # if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
