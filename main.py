@@ -1220,6 +1220,8 @@ class Cockpit(QMainWindow):
         QShortcut("Ctrl+Q", self, activated=self.quit)
         self.setWindowTitle(self.base.settings.get_title())
         self.setWindowIcon(self.base.app_icon)
+        self.center()
+
         # self.show_window()
 
     def create_widget(self):
@@ -1282,7 +1284,6 @@ class Cockpit(QMainWindow):
     def show_window(self):
         # self.resize(1000, 15000)
         # self.showMaximized()
-        self.center()
         self.show()
         self.activateWindow()
         self.raise_()
@@ -1414,6 +1415,16 @@ class Application(QApplication):
             #     except Exception:
             #         print("Unexpected error:", )
 
+class Tee(object):
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush() # If you want the output to be visible immediately
+    def flush(self) :
+        for f in self.files:
+            f.flush()
 
 if __name__ == '__main__':
     app = Application(sys.argv)
@@ -1421,6 +1432,9 @@ if __name__ == '__main__':
     base = DRBase()
     app.new_connection.connect(base.browser_or_cockpit)
     app.setQuitOnLastWindowClosed(False)
+    f = open(os.path.join(BASE_PATH, 'cockpit.log'), 'w')
+    original = sys.stdout
+    sys.stdout = Tee(sys.stdout, f)
     if app.is_running:
     # if False:
         app.send_message(sys.argv)
@@ -1431,4 +1445,6 @@ if __name__ == '__main__':
         app.setWindowIcon(QIcon(os.path.join(BASE_PATH, 'icons/awecode/16.png')))
         ret = app.exec_()
         app.deleteLater()
+        f.close()
+        sys.stdout = original
         sys.exit(ret)
