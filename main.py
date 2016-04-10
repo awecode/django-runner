@@ -356,30 +356,18 @@ class Worker(QObject):
 class ServiceTab(Tab):
     manual_stop = False
     service_status = pyqtSignal(str)
-    fail_count = 0
 
     def set_process_status(self, st):
         self.process_status = st
         self.status_text.setText(st)
 
         if self.process_status == 'Started':
-            self.fail_count = 0
             self.start_button.setEnabled(False)
             self.stop_button.setEnabled(True)
             if self.base.browser_waiting:
                 self.base.browser.show_window()
                 self.base.browser_waiting = False
         else:
-            if not self.manual_stop:
-                self.fail_count += 1
-                if self.fail_count == 5:
-                    # if self.base.settings.is_valid():
-                    #     QMessageBox.critical(None, 'Service Failed!',
-                    #                          'Starting service failed. Please fix settings and restart application.')
-                    #     self.base.tray.show_tab(0)
-                    # else:
-                    #     self.base.settings.warn()
-                    self.manual_stop = True
             self.start_button.setEnabled(True)
             self.stop_button.setEnabled(False)
         self.service_status.emit(str(st))
