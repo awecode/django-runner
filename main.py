@@ -964,6 +964,7 @@ class WebBrowser(QMainWindow):
         QMainWindow.__init__(self)
         self.base = base
         self.setWindowIcon(self.base.app_icon)
+        self.setWindowTitle(self.base.settings.get_title())
         QWebSettings.globalSettings().setAttribute(QWebSettings.DeveloperExtrasEnabled, True)
 
         self.pbar = QProgressBar()
@@ -1415,16 +1416,20 @@ class Application(QApplication):
             #     except Exception:
             #         print("Unexpected error:", )
 
+
 class Tee(object):
     def __init__(self, *files):
         self.files = files
+
     def write(self, obj):
         for f in self.files:
             f.write(obj)
-            f.flush() # If you want the output to be visible immediately
-    def flush(self) :
+            f.flush()  # If you want the output to be visible immediately
+
+    def flush(self):
         for f in self.files:
             f.flush()
+
 
 if __name__ == '__main__':
     app = Application(sys.argv)
@@ -1436,7 +1441,7 @@ if __name__ == '__main__':
     original = sys.stdout
     sys.stdout = Tee(sys.stdout, f)
     if app.is_running:
-    # if False:
+        # if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
