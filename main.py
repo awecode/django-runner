@@ -105,23 +105,20 @@ class Settings(QSettings):
             self.get_python_path())
 
     def warn(self):
+        self.base.tray.show_tab(1)
         if not self.get_project_path():
             QMessageBox.critical(None, 'Settings', 'Please fix project path and start service.', QMessageBox.Ok)
-            self.base.tray.show_tab(1)
             self.base.cockpit.setting_tab.project_path_edit.setFocus(True)
         if not os.path.isdir(self.get_project_path()):
             QMessageBox.critical(None, 'Settings', 'Project Path isn\'t a valid directory. Please fix and start service',
                                  QMessageBox.Ok)
-            self.base.tray.show_tab(1)
             self.base.cockpit.setting_tab.project_path_edit.setFocus(True)
         if not self.get_python_path():
             QMessageBox.critical(None, 'Settings', 'Please fix python path and start service.', QMessageBox.Ok)
-            self.base.tray.show_tab(1)
             self.base.cockpit.setting_tab.python_path_edit.setFocus(True)
         if not os.path.isfile(self.get_python_path()):
             QMessageBox.critical(None, 'Settings', 'Python Path isn\'t a valid file. Please fix and start service',
                                  QMessageBox.Ok)
-            self.base.tray.show_tab(1)
             self.base.cockpit.setting_tab.python_path_edit.setFocus(True)
 
     def get(self, key, default=None):
@@ -376,12 +373,12 @@ class ServiceTab(Tab):
             if not self.manual_stop:
                 self.fail_count += 1
                 if self.fail_count == 5:
-                    if self.base.settings.is_valid():
-                        QMessageBox.critical(None, 'Service Failed!',
-                                             'Starting service failed. Please fix settings and restart application.')
-                        self.base.tray.show_tab(0)
-                    else:
-                        self.base.settings.warn()
+                    # if self.base.settings.is_valid():
+                    #     QMessageBox.critical(None, 'Service Failed!',
+                    #                          'Starting service failed. Please fix settings and restart application.')
+                    #     self.base.tray.show_tab(0)
+                    # else:
+                    #     self.base.settings.warn()
                     self.manual_stop = True
             self.start_button.setEnabled(True)
             self.stop_button.setEnabled(False)
@@ -448,6 +445,14 @@ class ServiceTab(Tab):
         txt = str(self.process.readAll(), encoding='utf-8')
         self.console.add_line(txt)
 
+    def validate_settings(self):
+        if self.base.settings.is_valid():
+            self.base.tray.show_tab(0)
+            QMessageBox.critical(None, 'Service Failed!',
+                                 'Starting service failed. Please fix settings and restart application.')
+        else:
+            self.base.settings.warn()
+
     def on_finish(self):
         if not self.manual_stop:
             error = str(self.process.readAllStandardError(), encoding='utf-8')
@@ -455,6 +460,7 @@ class ServiceTab(Tab):
                 self.console.add_line('Process finished!')
             else:
                 self.console.add_error(error)
+            self.validate_settings()
         self.set_process_status('Stopped')
         # self.manual_stop = True
 
@@ -463,6 +469,7 @@ class ServiceTab(Tab):
             error = 'Error occurred while trying to run service.'
             if not self.process.error() == 0:
                 error += str(self.process.error())
+            self.validate_settings()
             self.console.add_error(error)
         self.set_process_status('Stopped')
         # self.manual_stop = True
@@ -1441,7 +1448,7 @@ if __name__ == '__main__':
     original = sys.stdout
     sys.stdout = Tee(sys.stdout, f)
     if app.is_running:
-        # if False:
+    # if False:
         app.send_message(sys.argv)
         base.tray.hide()
     else:
