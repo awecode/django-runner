@@ -9,7 +9,7 @@ from psutil import process_iter
 from psutil import AccessDenied
 from signal import SIGTERM  # or SIGKILL
 from http.cookiejar import CookieJar, Cookie
-from ipdb import set_trace
+from pdb import set_trace
 
 
 def debug_trace():

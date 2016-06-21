@@ -105,7 +105,6 @@ class Settings(QSettings):
             self.get_python_path())
 
     def warn(self):
-        self.base.tray.show_tab(1)
         if not self.get_project_path():
             QMessageBox.critical(None, 'Settings', 'Please fix project path and start service.', QMessageBox.Ok)
             self.base.cockpit.setting_tab.project_path_edit.setFocus(True)
@@ -427,7 +426,7 @@ class ServiceTab(Tab):
         self.process.readyReadStandardOutput.connect(self.on_ready)
         self.process.error.connect(self.on_error)
         self.process.finished.connect(self.on_finish)
-        self.start_process()
+        # self.start_process()
 
     def on_ready(self):
         txt = str(self.process.readAll(), encoding='utf-8')
@@ -439,6 +438,7 @@ class ServiceTab(Tab):
             QMessageBox.critical(None, 'Service Failed!',
                                  'Starting service failed. Please fix settings and restart application.')
         else:
+            self.base.tray.show_tab(1)
             self.base.settings.warn()
 
     def on_finish(self):
@@ -1178,6 +1178,7 @@ class DRBase(object):
             self.cockpit = Cockpit(self)
             self.tray = Tray(self)
             self.cockpit.service_status.connect(self.tray.service_status)
+            self.cockpit.service_tab.start_process()
         else:
             return sys.exit()
 
